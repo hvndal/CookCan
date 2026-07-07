@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 const LoginScreen = () => {
@@ -44,6 +44,7 @@ const LoginScreen = () => {
           value={email}
           placeholder="email@address.com"
           autoCapitalize={'none'}
+          accessibilityLabel="Email address"
         />
         <TextInput
           style={styles.input}
@@ -52,6 +53,7 @@ const LoginScreen = () => {
           secureTextEntry={true}
           placeholder="Password"
           autoCapitalize={'none'}
+          accessibilityLabel="Password"
         />
       </View>
 
@@ -59,16 +61,28 @@ const LoginScreen = () => {
         style={styles.button}
         disabled={loading}
         onPress={() => signInWithEmail()}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <Text style={styles.buttonText}>Sign in</Text>
+        {loading ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text style={styles.buttonText}>Sign in</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.button, styles.secondaryButton]}
         disabled={loading}
         onPress={() => signUpWithEmail()}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <Text style={styles.secondaryButtonText}>Sign up</Text>
+        {loading ? (
+          <ActivityIndicator color="#007AFF" />
+        ) : (
+          <Text style={styles.secondaryButtonText}>Sign up</Text>
+        )}
       </TouchableOpacity>
 
     </View>
