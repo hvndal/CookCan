@@ -1,0 +1,7 @@
+🧪 [Add test coverage for index.ts]
+
+🎯 **What:** The testing gap addressed was the missing test file for the entry point `index.ts`. We needed to ensure that `registerRootComponent` from `expo` is called with the `App` component when the app initializes. We configured Jest to support Expo testing.
+
+📊 **Coverage:** The entry point file `index.ts` is now covered. Specifically, we test that requiring the module successfully triggers the root component registration with the main `App` component.
+
+✨ **Result:** Test coverage improved by ensuring that the application bootstrapping code works correctly and that `registerRootComponent` is properly configured.
