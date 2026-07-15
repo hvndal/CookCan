@@ -44,6 +44,9 @@ const LoginScreen = () => {
           value={email}
           placeholder="email@address.com"
           autoCapitalize={'none'}
+          keyboardType="email-address"
+          textContentType="emailAddress"
+          autoComplete="email"
           accessibilityLabel="Email address"
         />
         <TextInput
@@ -53,6 +56,8 @@ const LoginScreen = () => {
           secureTextEntry={true}
           placeholder="Password"
           autoCapitalize={'none'}
+          textContentType="password"
+          autoComplete="password"
           accessibilityLabel="Password"
         />
       </View>
