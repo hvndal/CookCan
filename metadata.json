@@ -1,0 +1,8 @@
+{
+  "name": "Remix: CookCan",
+  "description": "Scan your ingredients to generate personalized recipes instantly with Gemini AI. Your Michelin-star kitchen companion for effortless cooking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
