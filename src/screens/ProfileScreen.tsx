@@ -19,9 +19,10 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const navigation = useRootNavigation();
-  const { user, signOut, isLocalUser } = useAuth();
+  const { user, signOut, isLocalUser, isAdmin } = useAuth();
   const {
     isPro,
+    proSource,
     localizedPrice,
     localizedYearlyPrice,
     subscription,
@@ -49,6 +50,9 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <Text style={styles.cardLabel}>{t('plan')}</Text>
         <Text style={styles.cardValue}>{isPro ? PLANS.pro.name : PLANS.free.name}</Text>
+        {isPro && proSource === 'admin' && (
+          <Text style={styles.badge}>{t('proGranted')}</Text>
+        )}
         <Text style={styles.cardMeta}>
           {isPro
             ? t('activePlan', {
@@ -94,6 +98,15 @@ export default function ProfileScreen() {
           label={t('upgradePro')}
           onPress={() => navigation.navigate('Paywall', { reason: 'profile' })}
           style={{ marginTop: 16 }}
+        />
+      )}
+
+      {isAdmin && (
+        <Button
+          label={t('adminTitle')}
+          variant="secondary"
+          onPress={() => navigation.navigate('AdminGrant')}
+          style={{ marginTop: 12 }}
         />
       )}
 

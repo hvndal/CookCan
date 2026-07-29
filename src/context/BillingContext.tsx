@@ -34,10 +34,16 @@ import {
 import { storage } from '../lib/storage';
 import type { SubscriptionState } from '../types';
 import { useSettings } from './SettingsContext';
+import { useAuth } from './AuthContext';
+import {
+  subscribeEntitlement,
+  type UserEntitlement,
+} from '../lib/entitlements';
 
 type BillingContextValue = {
   ready: boolean;
   isPro: boolean;
+  proSource: 'free' | 'play' | 'admin' | 'promo';
   subscription: SubscriptionState;
   localizedPrice: string;
   localizedYearlyPrice: string;
@@ -124,8 +130,13 @@ function offerTokenFor(product?: ProductSubscription | null): string | undefined
 
 export function BillingProvider({ children }: { children: ReactNode }) {
   const { localPrice, country, locale } = useSettings();
+  const { user, isLocalUser } = useAuth();
   const [ready, setReady] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionState>(defaultSub);
+  const [cloudEntitlement, setCloudEntitlement] = useState<UserEntitlement>({
+    planId: 'free',
+    proSource: 'free',
+  });
   const [products, setProducts] = useState<ProductSubscription[]>([]);
   const [purchasing, setPurchasing] = useState(false);
   const [storeConnected, setStoreConnected] = useState(false);
@@ -266,6 +277,14 @@ export function BillingProvider({ children }: { children: ReactNode }) {
   }, [persist, regionalMonthly.label, regionalYearly.label, regionalMonthly.currency, locale.currencyCode, country]);
 
   useEffect(() => {
+    if (!user?.email || isLocalUser) {
+      setCloudEntitlement({ planId: 'free', proSource: 'free' });
+      return;
+    }
+    return subscribeEntitlement(user.email, setCloudEntitlement);
+  }, [user?.email, isLocalUser]);
+
+  useEffect(() => {
     void refresh();
 
     const purchaseSub = purchaseUpdatedListener(async (purchase: Purchase) => {
@@ -404,10 +423,20 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       ? subscription.localizedYearlyPrice
       : regionalYearly.label;
 
+  const playPro = subscription.isActive && subscription.planId === 'pro';
+  const grantedPro = cloudEntitlement.planId === 'pro';
+  const isPro = playPro || grantedPro;
+  const proSource = playPro
+    ? 'play'
+    : grantedPro
+      ? cloudEntitlement.proSource
+      : 'free';
+
   const value = useMemo(
     () => ({
       ready,
-      isPro: subscription.isActive && subscription.planId === 'pro',
+      isPro,
+      proSource,
       subscription,
       localizedPrice: displayMonthly,
       localizedYearlyPrice: displayYearly,
@@ -423,6 +452,8 @@ export function BillingProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
+      isPro,
+      proSource,
       subscription,
       displayMonthly,
       displayYearly,

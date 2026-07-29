@@ -33,8 +33,8 @@ SKUs: `cookcan_pro_monthly`, `cookcan_pro_yearly` · **7-day free trial** on bot
 - [x] Tabs: Home · Pantry · AI Chef · Grocery
 - [x] Scan quota (5 free / month) + paywall
 - [x] Gemini scan/recipes/chat (demo fallback without key)
-- [x] Local guest auth if Supabase unset
-- [ ] Wire production `EXPO_PUBLIC_GEMINI_API_KEY` + Supabase anon key via EAS Secrets
+- [x] Local guest auth if Firebase unset
+- [ ] Wire production `EXPO_PUBLIC_GEMINI_API_KEY` + Firebase config via EAS Secrets (see `FIREBASE.md`)
 - [ ] Optional: Google Sign-In (plugin removed until configured)
 
 ### 3. Google Play Billing — Console work (you)
@@ -53,7 +53,8 @@ npm i -g eas-cli
 eas login
 eas init                 # paste projectId into app.json extra.eas.projectId
 eas secret:create --name EXPO_PUBLIC_GEMINI_API_KEY --value ...
-eas secret:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value ...
+eas secret:create --name EXPO_PUBLIC_FIREBASE_API_KEY --value ...
+# See FIREBASE.md for all Firebase + admin env vars
 
 # Internal / QA APK
 eas build --profile preview --platform android

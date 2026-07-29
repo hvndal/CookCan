@@ -17,6 +17,14 @@ import type {
 import { monthKey, storage, uid } from '../lib/storage';
 import { FREE_SCANS_PER_MONTH } from '../constants/billing';
 import { useBilling } from './BillingContext';
+import { useAuth } from './AuthContext';
+import {
+  pullPantryFromCloud,
+  pullRecipesFromCloud,
+  syncPantryToCloud,
+  syncRecipesToCloud,
+} from '../lib/entitlements';
+import { isFirebaseConfigured } from '../lib/firebase';
 
 type DataContextValue = {
   ready: boolean;
@@ -49,6 +57,7 @@ const DataContext = createContext<DataContextValue | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { isPro } = useBilling();
+  const { user, isLocalUser } = useAuth();
   const [ready, setReady] = useState(false);
   const [pantry, setPantry] = useState<PantryItem[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -80,6 +89,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setReady(true);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.id || isLocalUser || user.id === 'local') return;
+
+    let cancelled = false;
+    (async () => {
+      const [cloudPantry, cloudRecipes] = await Promise.all([
+        pullPantryFromCloud(user.id),
+        pullRecipesFromCloud(user.id),
+      ]);
+      if (cancelled) return;
+      if (cloudPantry?.length) {
+        setPantry(cloudPantry);
+        await storage.setPantry(cloudPantry);
+      }
+      if (cloudRecipes?.length) {
+        setRecipes(cloudRecipes);
+        await storage.setRecipes(cloudRecipes);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, isLocalUser]);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.id || isLocalUser || user.id === 'local') return;
+    const timer = setTimeout(() => {
+      void syncPantryToCloud(user.id, pantry);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [pantry, user?.id, isLocalUser]);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !user?.id || isLocalUser || user.id === 'local') return;
+    const timer = setTimeout(() => {
+      void syncRecipesToCloud(user.id, recipes);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [recipes, user?.id, isLocalUser]);
 
   const scansRemaining = isPro
     ? Infinity

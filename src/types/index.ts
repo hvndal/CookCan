@@ -82,6 +82,7 @@ export type RootStackParamList = {
   MealPlanner: undefined;
   Paywall: { reason?: string } | undefined;
   Profile: undefined;
+  AdminGrant: undefined;
 };
 
 export type MainTabParamList = {

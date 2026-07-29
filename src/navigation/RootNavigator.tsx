@@ -12,6 +12,7 @@ import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import MealPlannerScreen from '../screens/MealPlannerScreen';
 import PaywallScreen from '../screens/PaywallScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import AdminScreen from '../screens/AdminScreen';
 import { colors } from '../theme/colors';
 import type { RootStackParamList } from '../types';
 
@@ -44,6 +45,7 @@ export function RootNavigator() {
             <Stack.Screen name="MealPlanner" component={MealPlannerScreen} />
             <Stack.Screen name="Paywall" component={PaywallScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="AdminGrant" component={AdminScreen} />
           </>
         )}
       </Stack.Navigator>

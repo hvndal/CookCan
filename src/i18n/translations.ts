@@ -105,6 +105,21 @@ export const en = {
   home: 'Home',
   settings: 'Settings',
   country: 'Country',
+  proGranted: 'Pro · complimentary access',
+  adminTitle: 'Grant Pro access',
+  adminSub: 'Give selected users CookCan Pro for free. They must sign in with the same email.',
+  adminEmailLabel: 'User email',
+  adminGrant: 'Grant Pro',
+  adminRevoke: 'Revoke Pro',
+  adminHint:
+    'Grants sync from Firebase. Users see Pro instantly after signing in with that email.',
+  adminDenied: 'This area is only available to app owners.',
+  adminInvalidEmail: 'Enter a valid email address.',
+  adminFirebaseMissing: 'Add Firebase env vars and deploy Firestore rules first.',
+  adminGrantedTitle: 'Pro granted',
+  adminGrantedBody: '{{email}} now has CookCan Pro.',
+  adminRevokedTitle: 'Pro revoked',
+  adminRevokedBody: 'Removed complimentary Pro for {{email}}.',
 } as const;
 
 export type TranslationKey = keyof typeof en;
