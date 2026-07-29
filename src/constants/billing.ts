@@ -1,20 +1,29 @@
 /**
- * Google Play subscription product.
- * Create ONE monthly subscription in Play Console with ID below,
- * then set regional prices (Play handles dynamic/localized pricing).
+ * Google Play subscription product IDs (SKUs).
+ * These are the catalog codes you create in Play Console → Monetize → Subscriptions.
+ * The app asks Play for these IDs; Play returns the localized price for the user’s country.
  *
- * Target regional prices (configure in Play Console → Monetize → Products):
- * - United States:  USD 2.99
- * - Canada:         CAD 2.99
- * - Eurozone:       EUR 1.99
- * - India:          INR 100
- * - LATAM (e.g. MX, BR, AR, CL, CO): local equivalent of ~USD 1.99–2.99
+ * Create TWO subscription products (or one product with monthly + yearly base plans):
+ * - cookcan_pro_monthly
+ * - cookcan_pro_yearly
  *
- * The app always displays the store-localized price from BillingClient.
+ * Attach a 7-day free trial offer on both (Play Console → Offers / base plan free trial).
  */
-export const PRO_PRODUCT_ID = 'cookcan_pro_monthly';
+export const PRO_MONTHLY_PRODUCT_ID = 'cookcan_pro_monthly';
+export const PRO_YEARLY_PRODUCT_ID = 'cookcan_pro_yearly';
+
+/** @deprecated use PRO_MONTHLY_PRODUCT_ID */
+export const PRO_PRODUCT_ID = PRO_MONTHLY_PRODUCT_ID;
+
+export const PRO_PRODUCT_IDS = [PRO_MONTHLY_PRODUCT_ID, PRO_YEARLY_PRODUCT_ID] as const;
+
+export type BillingPeriod = 'monthly' | 'yearly';
 
 export const FREE_SCANS_PER_MONTH = 5;
+export const FREE_TRIAL_DAYS = 7;
+
+/** Yearly ≈ 2 months free (~17% off vs paying monthly for 12). */
+export const YEARLY_DISCOUNT_LABEL = '2 months free';
 
 export const PLANS = {
   free: {
@@ -31,18 +40,21 @@ export const PLANS = {
     id: 'pro' as const,
     name: 'CookCan Pro',
     scansPerMonth: Infinity,
-    fallbackPriceLabel: '$2.99/mo',
+    fallbackMonthlyLabel: '$2.99/mo',
+    fallbackYearlyLabel: '$29.99/yr',
+    trialLabel: `${FREE_TRIAL_DAYS}-day free trial`,
     features: [
       'Unlimited ingredient scans',
-      'AI Chef kitchen assistant',
+      'AI Chef kitchen assistant (Pro only)',
       'Meal planner',
       'Priority recipe generation',
+      `${FREE_TRIAL_DAYS}-day free trial on first subscribe`,
     ],
   },
 } as const;
 
-/** Reference map for docs / paywall copy (actual charged price comes from Play). */
-export const REGIONAL_PRICE_TARGETS = [
+/** Monthly targets — configure on cookcan_pro_monthly in Play Console. */
+export const REGIONAL_PRICE_TARGETS_MONTHLY = [
   { region: 'United States', currency: 'USD', amount: '2.99', symbol: '$' },
   { region: 'Canada', currency: 'CAD', amount: '2.99', symbol: 'CA$' },
   { region: 'Eurozone', currency: 'EUR', amount: '1.99', symbol: '€' },
@@ -53,3 +65,38 @@ export const REGIONAL_PRICE_TARGETS = [
   { region: 'Colombia', currency: 'COP', amount: '9900', symbol: 'COL$' },
   { region: 'Chile', currency: 'CLP', amount: '2490', symbol: 'CLP$' },
 ] as const;
+
+/**
+ * Yearly targets (~2 months free vs 12× monthly).
+ * Configure on cookcan_pro_yearly in Play Console.
+ */
+export const REGIONAL_PRICE_TARGETS_YEARLY = [
+  { region: 'United States', currency: 'USD', amount: '29.99', symbol: '$' },
+  { region: 'Canada', currency: 'CAD', amount: '29.99', symbol: 'CA$' },
+  { region: 'Eurozone', currency: 'EUR', amount: '19.99', symbol: '€' },
+  { region: 'India', currency: 'INR', amount: '999', symbol: '₹' },
+  { region: 'Mexico', currency: 'MXN', amount: '449', symbol: 'MX$' },
+  { region: 'Brazil', currency: 'BRL', amount: '149.99', symbol: 'R$' },
+  { region: 'Argentina', currency: 'ARS', amount: '24999', symbol: 'AR$' },
+  { region: 'Colombia', currency: 'COP', amount: '99000', symbol: 'COL$' },
+  { region: 'Chile', currency: 'CLP', amount: '24900', symbol: 'CLP$' },
+] as const;
+
+/** @deprecated use REGIONAL_PRICE_TARGETS_MONTHLY */
+export const REGIONAL_PRICE_TARGETS = REGIONAL_PRICE_TARGETS_MONTHLY;
+
+export function productIdForPeriod(period: BillingPeriod): string {
+  return period === 'yearly' ? PRO_YEARLY_PRODUCT_ID : PRO_MONTHLY_PRODUCT_ID;
+}
+
+export function periodForProductId(productId: string | null | undefined): BillingPeriod | null {
+  if (productId === PRO_YEARLY_PRODUCT_ID) return 'yearly';
+  if (productId === PRO_MONTHLY_PRODUCT_ID) return 'monthly';
+  return null;
+}
+
+export function isProProductId(productId: string): boolean {
+  return (
+    productId === PRO_MONTHLY_PRODUCT_ID || productId === PRO_YEARLY_PRODUCT_ID
+  );
+}

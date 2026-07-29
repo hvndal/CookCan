@@ -1,4 +1,7 @@
+import type { BillingPeriod } from '../constants/billing';
+
 export type PlanId = 'free' | 'pro';
+export type { BillingPeriod };
 
 export interface PantryItem {
   id: string;
@@ -59,9 +62,11 @@ export interface ScanUsage {
 export interface SubscriptionState {
   planId: PlanId;
   productId: string | null;
+  billingPeriod: BillingPeriod | null;
   expiresAt: number | null;
   isActive: boolean;
   localizedPrice: string | null;
+  localizedYearlyPrice: string | null;
   currencyCode: string | null;
   storeCountry: string | null;
 }

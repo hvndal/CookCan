@@ -9,27 +9,36 @@ Expo SDK 57 / React Native app (`com.cookcan.app`) with Google Play Billing subs
 | Plan | Price | Scans | Includes |
 |------|-------|-------|----------|
 | **Free** | $0 | **5 / calendar month** | Home, Pantry, Grocery, saved recipes |
-| **CookCan Pro** | Localized monthly | **Unlimited** | AI Chef, Meal planner, unlimited scans |
+| **CookCan Pro Monthly** | Localized | **Unlimited** | AI Chef, Meal planner, unlimited scans |
+| **CookCan Pro Yearly** | Localized (~2 months free) | **Unlimited** | Same as monthly |
+
+Both Pro plans include a **7-day free trial** (configure the offer in Play Console).
+
+### What is a product ID / SKU?
+
+A **SKU** (`cookcan_pro_monthly`, `cookcan_pro_yearly`) is the catalog code Google Play uses for each subscription. You create those products in Play Console; the app only references the IDs and displays whatever localized price Play returns.
 
 ### Dynamic / regional Pro pricing
 
-Create **one** Play Console subscription product:
+Create these Play Console subscriptions:
 
-- **Product ID:** `cookcan_pro_monthly`
+- `cookcan_pro_monthly`
+- `cookcan_pro_yearly`
 
-Then set country prices (Play Billing returns the localized price to the app):
+Attach a **7-day free trial** offer on both.
 
-| Region | Target |
-|--------|--------|
-| United States | USD 2.99 |
-| Canada | CAD 2.99 |
-| Eurozone | EUR 1.99 |
-| India | INR 100 |
-| Mexico | MXN ~49 |
-| Brazil | BRL ~14.99 |
-| Other LATAM | local ~USD 1.99–2.99 equivalent |
+| Region | Monthly | Yearly (~2 mo free) |
+|--------|---------|---------------------|
+| United States | USD 2.99 | USD 29.99 |
+| Canada | CAD 2.99 | CAD 29.99 |
+| Eurozone | EUR 1.99 | EUR 19.99 |
+| India | INR 100 | INR 999 |
+| Mexico | MXN ~49 | MXN ~449 |
+| Brazil | BRL ~14.99 | BRL ~149.99 |
+| Other LATAM | local monthly | ~10× monthly |
 
-The paywall always shows `localizedPrice` from `expo-iap` / Play Billing.
+The paywall always shows `localizedPrice` / `localizedYearlyPrice` from `expo-iap` / Play Billing.
+
 
 ## Run locally
 

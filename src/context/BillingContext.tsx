@@ -21,7 +21,17 @@ import {
   type ProductSubscription,
   type Purchase,
 } from 'expo-iap';
-import { PLANS, PRO_PRODUCT_ID } from '../constants/billing';
+import {
+  FREE_TRIAL_DAYS,
+  PLANS,
+  PRO_MONTHLY_PRODUCT_ID,
+  PRO_PRODUCT_IDS,
+  PRO_YEARLY_PRODUCT_ID,
+  isProProductId,
+  periodForProductId,
+  productIdForPeriod,
+  type BillingPeriod,
+} from '../constants/billing';
 import { storage } from '../lib/storage';
 import type { SubscriptionState } from '../types';
 
@@ -30,13 +40,15 @@ type BillingContextValue = {
   isPro: boolean;
   subscription: SubscriptionState;
   localizedPrice: string;
+  localizedYearlyPrice: string;
   currencyCode: string | null;
   products: ProductSubscription[];
   purchasing: boolean;
+  freeTrialDays: number;
   refresh: () => Promise<void>;
-  purchasePro: () => Promise<boolean>;
+  purchasePro: (period?: BillingPeriod) => Promise<boolean>;
   restorePurchases: () => Promise<boolean>;
-  activateProMock: () => Promise<void>;
+  activateProMock: (period?: BillingPeriod) => Promise<void>;
   deactivateProMock: () => Promise<void>;
 };
 
@@ -45,18 +57,35 @@ const BillingContext = createContext<BillingContextValue | undefined>(undefined)
 const defaultSub: SubscriptionState = {
   planId: 'free',
   productId: null,
+  billingPeriod: null,
   expiresAt: null,
   isActive: false,
   localizedPrice: null,
+  localizedYearlyPrice: null,
   currencyCode: null,
   storeCountry: null,
 };
 
-function pickLocalizedPrice(product?: ProductSubscription | null): {
-  label: string;
-  currency: string | null;
-} {
-  if (!product) return { label: PLANS.pro.fallbackPriceLabel, currency: null };
+function findProduct(
+  products: ProductSubscription[],
+  productId: string
+): ProductSubscription | undefined {
+  return products.find((p) => {
+    const id = (p as { id?: string; productId?: string }).id || (p as { productId?: string }).productId;
+    return id === productId;
+  });
+}
+
+function pickLocalizedPrice(
+  product: ProductSubscription | null | undefined,
+  period: BillingPeriod
+): { label: string; currency: string | null } {
+  const fallback =
+    period === 'yearly' ? PLANS.pro.fallbackYearlyLabel : PLANS.pro.fallbackMonthlyLabel;
+  const suffix = period === 'yearly' ? '/yr' : '/mo';
+
+  if (!product) return { label: fallback, currency: null };
+
   const anyProduct = product as ProductSubscription & {
     displayPrice?: string;
     currency?: string;
@@ -68,22 +97,27 @@ function pickLocalizedPrice(product?: ProductSubscription | null): {
   };
 
   if (anyProduct.displayPrice) {
-    return {
-      label: `${anyProduct.displayPrice}/mo`,
-      currency: anyProduct.currency ?? null,
-    };
+    const raw = anyProduct.displayPrice;
+    const label = raw.includes('/') ? raw : `${raw}${suffix}`;
+    return { label, currency: anyProduct.currency ?? null };
   }
 
   const phase =
     anyProduct.subscriptionOfferDetailsAndroid?.[0]?.pricingPhases?.pricingPhaseList?.[0];
   if (phase?.formattedPrice) {
     return {
-      label: `${phase.formattedPrice}/mo`,
+      label: `${phase.formattedPrice}${suffix}`,
       currency: phase.priceCurrencyCode ?? null,
     };
   }
 
-  return { label: PLANS.pro.fallbackPriceLabel, currency: null };
+  return { label: fallback, currency: null };
+}
+
+function offerTokenFor(product?: ProductSubscription | null): string | undefined {
+  return (product as ProductSubscription & {
+    subscriptionOfferDetailsAndroid?: Array<{ offerToken?: string }>;
+  })?.subscriptionOfferDetailsAndroid?.[0]?.offerToken;
 }
 
 export function BillingProvider({ children }: { children: ReactNode }) {
@@ -101,14 +135,24 @@ export function BillingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applyActive = useCallback(
-    async (active: boolean, extras: Partial<SubscriptionState> = {}) => {
+    async (
+      active: boolean,
+      extras: Partial<SubscriptionState> & { billingPeriod?: BillingPeriod | null } = {}
+    ) => {
       const current = subscriptionRef.current;
+      const period = extras.billingPeriod ?? current.billingPeriod ?? 'monthly';
+      const productId = active ? productIdForPeriod(period) : null;
+      const durationMs =
+        period === 'yearly' ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+
       await persist({
         planId: active ? 'pro' : 'free',
-        productId: active ? PRO_PRODUCT_ID : null,
-        expiresAt: active ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
+        productId,
+        billingPeriod: active ? period : null,
+        expiresAt: active ? Date.now() + durationMs : null,
         isActive: active,
         localizedPrice: extras.localizedPrice ?? current.localizedPrice,
+        localizedYearlyPrice: extras.localizedYearlyPrice ?? current.localizedYearlyPrice,
         currencyCode: extras.currencyCode ?? current.currencyCode,
         storeCountry: extras.storeCountry ?? current.storeCountry,
       });
@@ -118,7 +162,12 @@ export function BillingProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const saved = await storage.getSubscription();
-    setSubscription(saved);
+    setSubscription({
+      ...defaultSub,
+      ...saved,
+      billingPeriod: saved.billingPeriod ?? periodForProductId(saved.productId),
+      localizedYearlyPrice: saved.localizedYearlyPrice ?? null,
+    });
 
     try {
       if (Platform.OS === 'web') {
@@ -130,30 +179,49 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       setStoreConnected(Boolean(connected));
 
       const subs = (await fetchProducts({
-        skus: [PRO_PRODUCT_ID],
+        skus: [...PRO_PRODUCT_IDS],
         type: 'subs',
       })) as ProductSubscription[] | null;
 
       const list = subs ?? [];
       setProducts(list);
-      const { label, currency } = pickLocalizedPrice(list[0]);
 
-      let active = false;
+      const monthly = pickLocalizedPrice(findProduct(list, PRO_MONTHLY_PRODUCT_ID), 'monthly');
+      const yearly = pickLocalizedPrice(findProduct(list, PRO_YEARLY_PRODUCT_ID), 'yearly');
+
+      let activeProductId: string | null = null;
       try {
-        const actives = await getActiveSubscriptions([PRO_PRODUCT_ID]);
-        active = Array.isArray(actives) && actives.length > 0;
+        const actives = await getActiveSubscriptions([...PRO_PRODUCT_IDS]);
+        if (Array.isArray(actives) && actives.length > 0) {
+          const first = actives[0] as { productId?: string; id?: string };
+          activeProductId = first.productId || first.id || null;
+        }
       } catch {
-        active = saved.isActive && saved.planId === 'pro';
+        activeProductId =
+          saved.isActive && saved.planId === 'pro' ? saved.productId : null;
       }
 
-      const isPro = active || (saved.isActive && saved.planId === 'pro');
+      const isPro =
+        Boolean(activeProductId && isProProductId(activeProductId)) ||
+        (saved.isActive && saved.planId === 'pro');
+      const period =
+        periodForProductId(activeProductId) ??
+        saved.billingPeriod ??
+        periodForProductId(saved.productId) ??
+        'monthly';
+
       await persist({
         planId: isPro ? 'pro' : 'free',
-        productId: isPro ? PRO_PRODUCT_ID : null,
-        expiresAt: isPro ? saved.expiresAt ?? Date.now() + 30 * 86400000 : null,
+        productId: isPro ? activeProductId ?? productIdForPeriod(period) : null,
+        billingPeriod: isPro ? period : null,
+        expiresAt: isPro
+          ? saved.expiresAt ??
+            Date.now() + (period === 'yearly' ? 365 : 30) * 86400000
+          : null,
         isActive: isPro,
-        localizedPrice: label,
-        currencyCode: currency,
+        localizedPrice: monthly.label,
+        localizedYearlyPrice: yearly.label,
+        currencyCode: monthly.currency ?? yearly.currency,
         storeCountry: saved.storeCountry,
       });
     } catch {
@@ -170,8 +238,11 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       try {
         const productId =
           purchase.productId || (purchase as { id?: string }).id || '';
-        if (productId === PRO_PRODUCT_ID) {
-          await applyActive(true);
+        if (isProProductId(productId)) {
+          await applyActive(true, {
+            billingPeriod: periodForProductId(productId) ?? 'monthly',
+            productId,
+          });
           await finishTransaction({ purchase, isConsumable: false });
         }
       } catch (e) {
@@ -193,53 +264,60 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       errorSub.remove();
       endConnection().catch(() => undefined);
     };
-    // Mount once — refresh/applyActive are stable via refs + persist
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const purchasePro = useCallback(async () => {
-    setPurchasing(true);
-    try {
-      if (!storeConnected || Platform.OS === 'web') {
-        Alert.alert(
-          'Store unavailable',
-          'Google Play Billing needs a development build and a Play Console subscription. Use “Unlock Pro (dev)” on the paywall for local testing.'
-        );
+  const purchasePro = useCallback(
+    async (period: BillingPeriod = 'monthly') => {
+      setPurchasing(true);
+      const sku = productIdForPeriod(period);
+      try {
+        if (!storeConnected || Platform.OS === 'web') {
+          Alert.alert(
+            'Store unavailable',
+            'Google Play Billing needs a development build and Play Console subscriptions. Use “Unlock Pro (dev)” on the paywall for local testing.'
+          );
+          setPurchasing(false);
+          return false;
+        }
+
+        const product = findProduct(products, sku);
+        const offerToken = offerTokenFor(product);
+
+        await requestPurchase({
+          request: {
+            google: {
+              skus: [sku],
+              ...(offerToken
+                ? { subscriptionOffers: [{ sku, offerToken }] }
+                : {}),
+            },
+            apple: { sku },
+          },
+          type: 'subs',
+        });
+        return true;
+      } catch (e) {
         setPurchasing(false);
+        Alert.alert('Purchase failed', e instanceof Error ? e.message : 'Unknown error');
         return false;
       }
-
-      const product = products[0];
-      const offerToken =
-        (product as ProductSubscription & {
-          subscriptionOfferDetailsAndroid?: Array<{ offerToken?: string }>;
-        })?.subscriptionOfferDetailsAndroid?.[0]?.offerToken;
-
-      await requestPurchase({
-        request: {
-          google: {
-            skus: [PRO_PRODUCT_ID],
-            ...(offerToken
-              ? { subscriptionOffers: [{ sku: PRO_PRODUCT_ID, offerToken }] }
-              : {}),
-          },
-          apple: { sku: PRO_PRODUCT_ID },
-        },
-        type: 'subs',
-      });
-      return true;
-    } catch (e) {
-      setPurchasing(false);
-      Alert.alert('Purchase failed', e instanceof Error ? e.message : 'Unknown error');
-      return false;
-    }
-  }, [products, storeConnected]);
+    },
+    [products, storeConnected]
+  );
 
   const restorePurchases = useCallback(async () => {
     try {
-      const actives = await getActiveSubscriptions([PRO_PRODUCT_ID]);
-      const active = Array.isArray(actives) && actives.length > 0;
-      await applyActive(active);
+      const actives = await getActiveSubscriptions([...PRO_PRODUCT_IDS]);
+      const first = Array.isArray(actives) && actives.length > 0
+        ? (actives[0] as { productId?: string; id?: string })
+        : null;
+      const productId = first?.productId || first?.id || null;
+      const active = Boolean(productId && isProProductId(productId));
+      await applyActive(active, {
+        billingPeriod: periodForProductId(productId) ?? 'monthly',
+        productId,
+      });
       Alert.alert(
         active ? 'Pro restored' : 'No subscription found',
         active
@@ -253,28 +331,39 @@ export function BillingProvider({ children }: { children: ReactNode }) {
     }
   }, [applyActive]);
 
-  const activateProMock = useCallback(async () => {
-    await applyActive(true, {
-      localizedPrice: subscriptionRef.current.localizedPrice ?? PLANS.pro.fallbackPriceLabel,
-    });
-  }, [applyActive]);
+  const activateProMock = useCallback(
+    async (period: BillingPeriod = 'yearly') => {
+      await applyActive(true, {
+        billingPeriod: period,
+        localizedPrice:
+          subscriptionRef.current.localizedPrice ?? PLANS.pro.fallbackMonthlyLabel,
+        localizedYearlyPrice:
+          subscriptionRef.current.localizedYearlyPrice ?? PLANS.pro.fallbackYearlyLabel,
+      });
+    },
+    [applyActive]
+  );
 
   const deactivateProMock = useCallback(async () => {
     await applyActive(false);
   }, [applyActive]);
 
-  const { label: localizedPrice } = pickLocalizedPrice(products[0]);
-  const displayPrice = subscription.localizedPrice ?? localizedPrice;
+  const monthly = pickLocalizedPrice(findProduct(products, PRO_MONTHLY_PRODUCT_ID), 'monthly');
+  const yearly = pickLocalizedPrice(findProduct(products, PRO_YEARLY_PRODUCT_ID), 'yearly');
+  const displayMonthly = subscription.localizedPrice ?? monthly.label;
+  const displayYearly = subscription.localizedYearlyPrice ?? yearly.label;
 
   const value = useMemo(
     () => ({
       ready,
       isPro: subscription.isActive && subscription.planId === 'pro',
       subscription,
-      localizedPrice: displayPrice,
+      localizedPrice: displayMonthly,
+      localizedYearlyPrice: displayYearly,
       currencyCode: subscription.currencyCode,
       products,
       purchasing,
+      freeTrialDays: FREE_TRIAL_DAYS,
       refresh,
       purchasePro,
       restorePurchases,
@@ -284,7 +373,8 @@ export function BillingProvider({ children }: { children: ReactNode }) {
     [
       ready,
       subscription,
-      displayPrice,
+      displayMonthly,
+      displayYearly,
       products,
       purchasing,
       refresh,

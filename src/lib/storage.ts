@@ -59,9 +59,11 @@ export const storage = {
     readJson<SubscriptionState>(keys.subscription, {
       planId: 'free',
       productId: null,
+      billingPeriod: null,
       expiresAt: null,
       isActive: false,
       localizedPrice: null,
+      localizedYearlyPrice: null,
       currencyCode: null,
       storeCountry: null,
     }),
