@@ -15,7 +15,16 @@
 .cxx
 local.properties
 .env
+.env.*
+gemini.env
+*.env.local
 debug.keystore
+*.jks
+*.keystore
+*.aab
+*.apk
+android/
+ios/
 
 # Dependencies & Expo
 node_modules/
