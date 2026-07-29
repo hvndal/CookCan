@@ -18,6 +18,14 @@ CookCan uses **Firebase Auth** (email/password) and **Firestore** for:
 - **Sign-in method** → enable **Google**
   - Copy the **Web client ID** into `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
   - Add your Android SHA-1 from `eas credentials` / Play Console to the Firebase Android app
+- **Sign-in method** → enable **Phone**
+  - Add test numbers for QA (optional)
+  - App uses reCAPTCHA (`expo-firebase-recaptcha`) before sending SMS
+
+### Android app
+- Package: `com.cookcan.app`
+- Place `google-services.json` at repo root (already included for project `cookcan-8f339`)
+- In Firebase Console → Project settings → Your apps → add Android app with package `com.cookcan.app` if missing, then replace `google-services.json`
 
 ### Firestore
 - Create database (production mode)

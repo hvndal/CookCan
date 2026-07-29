@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -11,9 +12,12 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  PhoneAuthProvider,
   signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithPhoneNumber,
   signOut as firebaseSignOut,
+  type ConfirmationResult,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +29,7 @@ import { storage } from '../lib/storage';
 export type AppUser = {
   id: string;
   email: string | null;
+  phoneNumber?: string | null;
   displayName?: string | null;
   photoURL?: string | null;
 };
@@ -36,9 +41,16 @@ type AuthContextValue = {
   isLocalUser: boolean;
   isAdmin: boolean;
   onboardingDone: boolean;
+  phoneCodeSent: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  sendPhoneCode: (
+    phoneE164: string,
+    verifier: { verify: () => Promise<string>; type?: string }
+  ) => Promise<void>;
+  confirmPhoneCode: (code: string) => Promise<void>;
+  resetPhoneAuth: () => void;
   signInLocal: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
@@ -51,9 +63,20 @@ function toAppUser(u: FirebaseUser): AppUser {
   return {
     id: u.uid,
     email: u.email,
-    displayName: u.displayName,
+    phoneNumber: u.phoneNumber,
+    displayName: u.displayName || u.phoneNumber || u.email?.split('@')[0],
     photoURL: u.photoURL,
   };
+}
+
+function normalizePhone(raw: string): string {
+  const trimmed = raw.trim().replace(/[\s()-]/g, '');
+  if (trimmed.startsWith('+')) return trimmed;
+  if (trimmed.startsWith('00')) return `+${trimmed.slice(2)}`;
+  // Assume North America if 10 digits
+  if (/^\d{10}$/.test(trimmed)) return `+1${trimmed}`;
+  if (/^\d{11,15}$/.test(trimmed)) return `+${trimmed}`;
+  return trimmed;
 }
 
 async function googleNativeSignIn(): Promise<string> {
@@ -83,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isLocalUser, setIsLocalUser] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(false);
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const confirmationRef = useRef<ConfirmationResult | null>(null);
+  const verificationIdRef = useRef<string | null>(null);
 
   const signInLocal = useCallback(async (email: string) => {
     const normalized = email.trim() || 'cook@cookcan.app';
@@ -115,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     if (Platform.OS === 'web') {
-      throw new Error('Google Sign-In works in the Android/iOS app build. Use email on web.');
+      throw new Error('Google Sign-In works in the Android/iOS app build. Use email or phone on web.');
     }
     if (!auth || !isFirebaseConfigured) {
       throw new Error('Configure Firebase to use Google Sign-In, or continue with email.');
@@ -128,11 +154,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const msg = e instanceof Error ? e.message : 'Google Sign-In failed';
       if (/EXPO_PUBLIC_GOOGLE|native module|RNGoogleSignin|not linked/i.test(msg)) {
         throw new Error(
-          'Google Sign-In needs a native build with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Use email for now, or rebuild with EAS.'
+          'Google Sign-In needs a native build with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Use email or phone for now.'
         );
       }
       throw e instanceof Error ? e : new Error(msg);
     }
+  }, []);
+
+  const sendPhoneCode = useCallback(
+    async (
+      phoneE164: string,
+      verifier: { verify: () => Promise<string>; type?: string }
+    ) => {
+      if (!auth || !isFirebaseConfigured) {
+        throw new Error('Firebase is required for phone login.');
+      }
+      const phone = normalizePhone(phoneE164);
+      if (!/^\+\d{10,15}$/.test(phone)) {
+        throw new Error('Enter a valid phone with country code, e.g. +14155552671');
+      }
+
+      try {
+        const confirmation = await signInWithPhoneNumber(
+          auth,
+          phone,
+          verifier as Parameters<typeof signInWithPhoneNumber>[2]
+        );
+        confirmationRef.current = confirmation;
+        verificationIdRef.current = confirmation.verificationId;
+        setPhoneCodeSent(true);
+      } catch (e) {
+        // Fallback path: obtain token then use PhoneAuthProvider
+        try {
+          const token = await verifier.verify();
+          const provider = new PhoneAuthProvider(auth);
+          const verificationId = await provider.verifyPhoneNumber(
+            phone,
+            // @ts-expect-error ApplicationVerifier shape from expo-firebase-recaptcha
+            { ...verifier, verify: async () => token }
+          );
+          verificationIdRef.current = verificationId;
+          confirmationRef.current = null;
+          setPhoneCodeSent(true);
+        } catch {
+          throw e instanceof Error ? e : new Error('Could not send SMS code');
+        }
+      }
+    },
+    []
+  );
+
+  const confirmPhoneCode = useCallback(async (code: string) => {
+    if (!auth) throw new Error('Firebase not ready');
+    const trimmed = code.trim();
+    if (!/^\d{6}$/.test(trimmed)) {
+      throw new Error('Enter the 6-digit code from SMS');
+    }
+
+    if (confirmationRef.current) {
+      await confirmationRef.current.confirm(trimmed);
+      setPhoneCodeSent(false);
+      confirmationRef.current = null;
+      return;
+    }
+
+    if (!verificationIdRef.current) {
+      throw new Error('Request a verification code first');
+    }
+    const credential = PhoneAuthProvider.credential(
+      verificationIdRef.current,
+      trimmed
+    );
+    await signInWithCredential(auth, credential);
+    setPhoneCodeSent(false);
+    verificationIdRef.current = null;
+  }, []);
+
+  const resetPhoneAuth = useCallback(() => {
+    confirmationRef.current = null;
+    verificationIdRef.current = null;
+    setPhoneCodeSent(false);
   }, []);
 
   useEffect(() => {
@@ -148,9 +249,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (fbUser) {
             setUser(toAppUser(fbUser));
             setIsLocalUser(false);
-            if (fbUser.email) {
-              await upsertUserProfile(fbUser.uid, fbUser.email);
-              if (isAdminEmail(fbUser.email)) {
+            const identity = fbUser.email || fbUser.phoneNumber;
+            if (identity) {
+              await upsertUserProfile(fbUser.uid, identity);
+              if (fbUser.email && isAdminEmail(fbUser.email)) {
                 await ensureAdminRecord(fbUser.uid, fbUser.email);
               }
             }
@@ -178,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLocalUser(false);
     setUser(null);
     setFirebaseUser(null);
+    resetPhoneAuth();
     try {
       const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
       await GoogleSignin.signOut();
@@ -185,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // optional
     }
     if (auth) await firebaseSignOut(auth);
-  }, []);
+  }, [resetPhoneAuth]);
 
   const completeOnboarding = useCallback(async () => {
     await storage.setOnboardingDone();
@@ -202,9 +305,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLocalUser,
       isAdmin,
       onboardingDone,
+      phoneCodeSent,
       signIn,
       signUp,
       signInWithGoogle,
+      sendPhoneCode,
+      confirmPhoneCode,
+      resetPhoneAuth,
       signInLocal,
       signOut,
       completeOnboarding,
@@ -216,9 +323,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLocalUser,
       isAdmin,
       onboardingDone,
+      phoneCodeSent,
       signIn,
       signUp,
       signInWithGoogle,
+      sendPhoneCode,
+      confirmPhoneCode,
+      resetPhoneAuth,
       signInLocal,
       signOut,
       completeOnboarding,

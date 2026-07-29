@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +13,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -22,17 +25,32 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
-import { isFirebaseConfigured } from '../lib/firebase';
+import { firebaseConfig, isFirebaseConfigured } from '../lib/firebase';
 import { REMOTE } from '../theme/assets';
 import { colors } from '../theme/colors';
 
+type Mode = 'email' | 'phone';
+
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn, signUp, signInLocal, signInWithGoogle } = useAuth();
+  const {
+    signIn,
+    signUp,
+    signInLocal,
+    signInWithGoogle,
+    sendPhoneCode,
+    confirmPhoneCode,
+    phoneCodeSent,
+    resetPhoneAuth,
+  } = useAuth();
+  const recaptchaRef = useRef<FirebaseRecaptchaVerifierModal>(null);
   const [showSplash, setShowSplash] = useState(true);
+  const [mode, setMode] = useState<Mode>('email');
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const pulse = useSharedValue(1);
 
@@ -76,8 +94,40 @@ export default function LoginScreen() {
     }
   }
 
+  async function runSendPhone() {
+    setLoading(true);
+    try {
+      if (!recaptchaRef.current) {
+        throw new Error('reCAPTCHA not ready — try again in a second');
+      }
+      await sendPhoneCode(phone, recaptchaRef.current);
+      Alert.alert('Code sent', 'Check your SMS for the 6-digit code.');
+    } catch (e) {
+      Alert.alert('Phone login', e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runConfirmPhone() {
+    setLoading(true);
+    try {
+      await confirmPhoneCode(otp);
+    } catch (e) {
+      Alert.alert('Phone login', e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <View style={styles.root}>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaRef}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification
+      />
+
       <ImageBackground source={{ uri: REMOTE.kitchenBg }} style={StyleSheet.absoluteFill} resizeMode="cover">
         <LinearGradient
           colors={['transparent', 'rgba(251,249,245,0.45)', colors.cream]}
@@ -88,109 +138,195 @@ export default function LoginScreen() {
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={[styles.wrap, { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 16 }]}
+        style={[styles.wrap, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 12 }]}
       >
-        <View style={styles.header}>
-          <View style={styles.brandPill}>
-            <Text style={styles.brandPillText}>CookCan</Text>
-          </View>
-          <Text style={styles.headline}>Crafting flavor{'\n'}with precision.</Text>
-          <Text style={styles.sub}>
-            Step into your private chef&apos;s atelier. Scan your ingredients and let AI design your
-            next masterpiece.
-          </Text>
-        </View>
-
-        <View style={styles.card}>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: isFirebaseConfigured ? colors.successSoft : colors.warningSoft },
-            ]}
-          >
-            <View
-              style={[
-                styles.dot,
-                { backgroundColor: isFirebaseConfigured ? '#4CAF50' : '#FF9800' },
-              ]}
-            />
-            <Text
-              style={{
-                fontWeight: '700',
-                fontSize: 11,
-                color: isFirebaseConfigured ? colors.success : colors.warning,
-              }}
-            >
-              {isFirebaseConfigured ? 'Firebase Live Sync' : 'Local / Sandbox Mode'}
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <View style={styles.brandPill}>
+              <Text style={styles.brandPillText}>CookCan</Text>
+            </View>
+            <Text style={styles.headline}>Crafting flavor{'\n'}with precision.</Text>
+            <Text style={styles.sub}>
+              Step into your private chef&apos;s atelier. Scan your ingredients and let AI design your
+              next masterpiece.
             </Text>
           </View>
 
-          <Text style={styles.cardTitle}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
-          <Text style={styles.cardSub}>
-            {isSignUp
-              ? 'Sign up to backup your custom recipes'
-              : 'Sign in to restore your culinary profile'}
-          </Text>
+          <View style={styles.card}>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: isFirebaseConfigured
+                    ? colors.successSoft
+                    : colors.warningSoft,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.dot,
+                  { backgroundColor: isFirebaseConfigured ? '#4CAF50' : '#FF9800' },
+                ]}
+              />
+              <Text
+                style={{
+                  fontWeight: '700',
+                  fontSize: 11,
+                  color: isFirebaseConfigured ? colors.success : colors.warning,
+                }}
+              >
+                {isFirebaseConfigured ? 'Firebase Live Sync' : 'Local / Sandbox Mode'}
+              </Text>
+            </View>
 
-          <Button
-            label="Continue with Google"
-            variant="google"
-            onPress={runGoogle}
-            loading={loading}
-            style={{ marginTop: 16 }}
-          />
+            <Text style={styles.cardTitle}>
+              {mode === 'phone'
+                ? phoneCodeSent
+                  ? 'Enter SMS code'
+                  : 'Sign in with Phone'
+                : isSignUp
+                  ? 'Create Account'
+                  : 'Welcome Back'}
+            </Text>
+            <Text style={styles.cardSub}>
+              {mode === 'phone'
+                ? 'We will text you a one-time code'
+                : isSignUp
+                  ? 'Sign up to backup your custom recipes'
+                  : 'Sign in to restore your culinary profile'}
+            </Text>
 
-          <View style={styles.orRow}>
-            <View style={styles.orLine} />
-            <Text style={styles.orText}>or email</Text>
-            <View style={styles.orLine} />
+            <Button
+              label="Continue with Google"
+              variant="google"
+              onPress={runGoogle}
+              loading={loading}
+              style={{ marginTop: 14 }}
+            />
+
+            <View style={styles.modeRow}>
+              <Pressable
+                onPress={() => {
+                  setMode('email');
+                  resetPhoneAuth();
+                }}
+                style={[styles.modeChip, mode === 'email' && styles.modeChipOn]}
+              >
+                <Text style={[styles.modeText, mode === 'email' && styles.modeTextOn]}>Email</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMode('phone')}
+                style={[styles.modeChip, mode === 'phone' && styles.modeChipOn]}
+              >
+                <Text style={[styles.modeText, mode === 'phone' && styles.modeTextOn]}>Phone</Text>
+              </Pressable>
+            </View>
+
+            {mode === 'email' ? (
+              <>
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email address"
+                  placeholderTextColor={colors.tabInactive}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  autoComplete="email"
+                />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Password (min 6)"
+                  placeholderTextColor={colors.tabInactive}
+                  secureTextEntry
+                  textContentType="password"
+                  autoComplete={isSignUp ? 'new-password' : 'password'}
+                />
+                <Button
+                  label={isSignUp ? 'Create Account' : 'Sign In'}
+                  onPress={runEmail}
+                  loading={loading}
+                />
+                <Button
+                  label={isSignUp ? 'Have an account? Sign In' : 'New to CookCan? Create Account'}
+                  variant="ghost"
+                  onPress={() => setIsSignUp((v) => !v)}
+                  style={{ marginTop: 4 }}
+                />
+              </>
+            ) : (
+              <>
+                {!phoneCodeSent ? (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="Phone +1 415 555 2671"
+                      placeholderTextColor={colors.tabInactive}
+                      keyboardType="phone-pad"
+                      textContentType="telephoneNumber"
+                      autoComplete="tel"
+                    />
+                    <Button
+                      label="Send SMS code"
+                      onPress={runSendPhone}
+                      loading={loading}
+                      pulse
+                    />
+                  </>
+                ) : (
+                  <>
+                    <TextInput
+                      style={styles.input}
+                      value={otp}
+                      onChangeText={setOtp}
+                      placeholder="6-digit code"
+                      placeholderTextColor={colors.tabInactive}
+                      keyboardType="number-pad"
+                      textContentType="oneTimeCode"
+                      maxLength={6}
+                    />
+                    <Button
+                      label="Verify & enter kitchen"
+                      onPress={runConfirmPhone}
+                      loading={loading}
+                      pulse
+                    />
+                    <Button
+                      label="Use a different number"
+                      variant="ghost"
+                      onPress={() => {
+                        resetPhoneAuth();
+                        setOtp('');
+                      }}
+                      style={{ marginTop: 4 }}
+                    />
+                  </>
+                )}
+              </>
+            )}
+
+            <Button
+              label="Explore as Guest"
+              variant="secondary"
+              onPress={() => signInLocal(email || phone || 'cook@cookcan.app')}
+              style={{ marginTop: 8 }}
+            />
           </View>
-
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email address"
-            placeholderTextColor={colors.tabInactive}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            autoComplete="email"
-          />
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password (min 6)"
-            placeholderTextColor={colors.tabInactive}
-            secureTextEntry
-            textContentType="password"
-            autoComplete={isSignUp ? 'new-password' : 'password'}
-          />
-
-          <Button
-            label={isSignUp ? 'Create Account' : 'Sign In'}
-            onPress={runEmail}
-            loading={loading}
-            style={{ marginTop: 4 }}
-          />
-          <Button
-            label={isSignUp ? 'Have an account? Sign In' : 'New to CookCan? Create Account'}
-            variant="ghost"
-            onPress={() => setIsSignUp((v) => !v)}
-            style={{ marginTop: 4 }}
-          />
-          <Button
-            label="Explore as Guest"
-            variant="secondary"
-            onPress={() => signInLocal(email || 'cook@cookcan.app')}
-            style={{ marginTop: 4 }}
-          />
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
       {showSplash && (
-        <Animated.View style={[styles.splash, { opacity: 1 }]}>
+        <Animated.View style={styles.splash}>
           <Animated.View style={splashLogoStyle}>
             <Image source={{ uri: REMOTE.logo }} style={styles.splashLogo} contentFit="contain" />
           </Animated.View>
@@ -204,18 +340,14 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.cream },
-  wrap: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-  },
-  header: { alignItems: 'center', marginTop: 12 },
+  wrap: { flex: 1, paddingHorizontal: 24 },
+  header: { alignItems: 'center', marginTop: 8, marginBottom: 16 },
   brandPill: {
     backgroundColor: 'rgba(240,114,147,0.22)',
     paddingHorizontal: 20,
     paddingVertical: 6,
     borderRadius: 999,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   brandPillText: {
     color: colors.primary,
@@ -224,27 +356,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   headline: {
-    fontSize: 38,
-    lineHeight: 46,
+    fontSize: 34,
+    lineHeight: 42,
     fontWeight: '700',
     color: colors.charcoal,
     textAlign: 'center',
     fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
   },
   sub: {
-    marginTop: 12,
-    fontSize: 16,
-    lineHeight: 24,
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.muted,
     textAlign: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.88)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 28,
-    padding: 22,
+    padding: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.65)',
+    marginBottom: 12,
   },
   badge: {
     alignSelf: 'center',
@@ -254,7 +387,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
   cardTitle: {
@@ -269,14 +402,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
   },
-  orRow: {
+  modeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    gap: 8,
     marginVertical: 14,
   },
-  orLine: { flex: 1, height: 1, backgroundColor: colors.outlineVariant },
-  orText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+  modeChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceLow,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
+    alignItems: 'center',
+  },
+  modeChipOn: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  modeText: { fontWeight: '700', color: colors.charcoal },
+  modeTextOn: { color: colors.white },
   input: {
     backgroundColor: colors.surfaceLow,
     borderWidth: 1,

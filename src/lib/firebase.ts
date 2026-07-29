@@ -4,13 +4,23 @@ import { initializeAuth, getAuth, type Auth, type Persistence } from 'firebase/a
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+/** Defaults from CookCan Firebase project — override with EXPO_PUBLIC_FIREBASE_* */
+export const firebaseConfig = {
+  apiKey:
+    process.env.EXPO_PUBLIC_FIREBASE_API_KEY ||
+    'AIzaSyC-DtJXwMwDKd7X8yMRR2J4WAgS9tkzBkc',
+  authDomain:
+    process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+    'cookcan-8f339.firebaseapp.com',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'cookcan-8f339',
+  storageBucket:
+    process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+    'cookcan-8f339.firebasestorage.app',
+  messagingSenderId:
+    process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '414050080694',
+  appId:
+    process.env.EXPO_PUBLIC_FIREBASE_APP_ID ||
+    '1:414050080694:android:c5cf3199eec2014913d317',
 };
 
 export const isFirebaseConfigured = Boolean(
@@ -56,7 +66,8 @@ export { app, auth, db };
 
 /** Comma-separated owner emails in EXPO_PUBLIC_ADMIN_EMAILS */
 export function getAdminEmails(): string[] {
-  const raw = process.env.EXPO_PUBLIC_ADMIN_EMAILS || '';
+  const raw =
+    process.env.EXPO_PUBLIC_ADMIN_EMAILS || 'harmanify@protonmail.com';
   return raw
     .split(',')
     .map((e: string) => e.trim().toLowerCase())

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "414050080694",
+    "project_id": "cookcan-8f339",
+    "storage_bucket": "cookcan-8f339.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:414050080694:android:c5cf3199eec2014913d317",
+        "android_client_info": {
+          "package_name": "com.cookcan.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-DtJXwMwDKd7X8yMRR2J4WAgS9tkzBkc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
