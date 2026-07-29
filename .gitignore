@@ -17,6 +17,9 @@ local.properties
 .env
 .env.*
 gemini.env
+gemini.env.txt
+*.env.txt
+uploads/
 *.env.local
 debug.keystore
 *.jks
