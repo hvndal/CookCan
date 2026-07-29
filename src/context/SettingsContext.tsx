@@ -1,14 +1,16 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, type ReactNode } from 'react';
+import { colors } from '../theme/colors';
 
 interface SettingsContextType {
-  theme: string;
+  theme: 'light';
+  colors: typeof colors;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   return (
-    <SettingsContext.Provider value={{ theme: 'light' }}>
+    <SettingsContext.Provider value={{ theme: 'light', colors }}>
       {children}
     </SettingsContext.Provider>
   );

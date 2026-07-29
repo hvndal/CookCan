@@ -6,25 +6,49 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "cookcan",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cookcan.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CookCan uses the camera to scan ingredients for personalized recipes.",
+        "NSPhotoLibraryUsageDescription": "CookCan uses your photos to identify ingredients."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FBF6EE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.cookcan.app"
+      "package": "com.cookcan.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "com.android.vending.BILLING"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "@react-native-google-signin/google-signin",
-      "expo-build-properties"
+      "expo-build-properties",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow CookCan to access your camera to scan ingredients."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow CookCan to access your photos to identify ingredients."
+        }
+      ],
+      "expo-iap"
     ]
   }
 }

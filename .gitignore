@@ -16,3 +16,10 @@
 local.properties
 .env
 debug.keystore
+
+# Dependencies & Expo
+node_modules/
+.expo/
+dist/
+npm-debug.*
+web-build/
