@@ -7,15 +7,22 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "cookcan",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FBF6EE"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cookcan.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "CookCan uses the camera to scan ingredients for personalized recipes.",
         "NSPhotoLibraryUsageDescription": "CookCan uses your photos to identify ingredients."
       }
     },
     "android": {
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FBF6EE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -27,19 +34,37 @@
       "permissions": [
         "android.permission.CAMERA",
         "com.android.vending.BILLING"
-      ]
+      ],
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.cookcan.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-google-signin/google-signin",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "enableMinifyInReleaseBuilds": true
+          }
+        }
+      ],
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FBF6EE",
+          "image": "./assets/splash.png",
+          "imageWidth": 280
+        }
+      ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow CookCan to access your camera to scan ingredients."
+          "cameraPermission": "Allow CookCan to access your camera to scan ingredients.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
@@ -49,6 +74,14 @@
         }
       ],
       "expo-iap"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      },
+      "privacyPolicyUrl": "https://cookcan.app/privacy",
+      "termsUrl": "https://cookcan.app/terms",
+      "supportEmail": "support@cookcan.app"
+    }
   }
 }

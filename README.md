@@ -33,11 +33,17 @@ Attach a **7-day free trial** offer on both.
 | Canada | CAD 2.99 | CAD 29.99 |
 | Eurozone | EUR 1.99 | EUR 19.99 |
 | India | INR 100 | INR 999 |
-| Mexico | MXN ~49 | MXN ~449 |
-| Brazil | BRL ~14.99 | BRL ~149.99 |
-| Other LATAM | local monthly | ~10× monthly |
+| **LATAM (~USD 1.50)** | | |
+| Mexico | MXN 29 | MXN 290 |
+| Brazil | BRL 8.99 | BRL 89.99 |
+| Argentina | ARS 1500 | ARS 14999 |
+| Colombia | COP 5990 | COP 59900 |
+| Chile | CLP 1490 | CLP 14900 |
+| Peru | PEN 5.99 | PEN 59.90 |
 
 The paywall always shows `localizedPrice` / `localizedYearlyPrice` from `expo-iap` / Play Billing.
+
+**Ship checklist:** see [PUBLISH.md](PUBLISH.md) for the full publishable / Play Store plan.
 
 
 ## Run locally

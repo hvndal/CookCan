@@ -53,33 +53,38 @@ export const PLANS = {
   },
 } as const;
 
-/** Monthly targets — configure on cookcan_pro_monthly in Play Console. */
+/** Monthly targets — configure on cookcan_pro_monthly in Play Console.
+ *  LATAM countries target ~USD 1.50 equivalent (not US/CA/EU parity).
+ */
 export const REGIONAL_PRICE_TARGETS_MONTHLY = [
-  { region: 'United States', currency: 'USD', amount: '2.99', symbol: '$' },
-  { region: 'Canada', currency: 'CAD', amount: '2.99', symbol: 'CA$' },
-  { region: 'Eurozone', currency: 'EUR', amount: '1.99', symbol: '€' },
-  { region: 'India', currency: 'INR', amount: '100', symbol: '₹' },
-  { region: 'Mexico', currency: 'MXN', amount: '49', symbol: 'MX$' },
-  { region: 'Brazil', currency: 'BRL', amount: '14.99', symbol: 'R$' },
-  { region: 'Argentina', currency: 'ARS', amount: '2499', symbol: 'AR$' },
-  { region: 'Colombia', currency: 'COP', amount: '9900', symbol: 'COL$' },
-  { region: 'Chile', currency: 'CLP', amount: '2490', symbol: 'CLP$' },
+  { region: 'United States', currency: 'USD', amount: '2.99', symbol: '$', note: 'full' as const },
+  { region: 'Canada', currency: 'CAD', amount: '2.99', symbol: 'CA$', note: 'full' as const },
+  { region: 'Eurozone', currency: 'EUR', amount: '1.99', symbol: '€', note: 'full' as const },
+  { region: 'India', currency: 'INR', amount: '100', symbol: '₹', note: 'full' as const },
+  // LATAM ≈ USD 1.50
+  { region: 'Mexico', currency: 'MXN', amount: '29', symbol: 'MX$', note: 'latam' as const },
+  { region: 'Brazil', currency: 'BRL', amount: '8.99', symbol: 'R$', note: 'latam' as const },
+  { region: 'Argentina', currency: 'ARS', amount: '1500', symbol: 'AR$', note: 'latam' as const },
+  { region: 'Colombia', currency: 'COP', amount: '5990', symbol: 'COL$', note: 'latam' as const },
+  { region: 'Chile', currency: 'CLP', amount: '1490', symbol: 'CLP$', note: 'latam' as const },
+  { region: 'Peru', currency: 'PEN', amount: '5.99', symbol: 'S/', note: 'latam' as const },
 ] as const;
 
 /**
  * Yearly targets (~2 months free vs 12× monthly).
- * Configure on cookcan_pro_yearly in Play Console.
+ * LATAM yearly ≈ 10× the ~USD 1.50 monthly target.
  */
 export const REGIONAL_PRICE_TARGETS_YEARLY = [
-  { region: 'United States', currency: 'USD', amount: '29.99', symbol: '$' },
-  { region: 'Canada', currency: 'CAD', amount: '29.99', symbol: 'CA$' },
-  { region: 'Eurozone', currency: 'EUR', amount: '19.99', symbol: '€' },
-  { region: 'India', currency: 'INR', amount: '999', symbol: '₹' },
-  { region: 'Mexico', currency: 'MXN', amount: '449', symbol: 'MX$' },
-  { region: 'Brazil', currency: 'BRL', amount: '149.99', symbol: 'R$' },
-  { region: 'Argentina', currency: 'ARS', amount: '24999', symbol: 'AR$' },
-  { region: 'Colombia', currency: 'COP', amount: '99000', symbol: 'COL$' },
-  { region: 'Chile', currency: 'CLP', amount: '24900', symbol: 'CLP$' },
+  { region: 'United States', currency: 'USD', amount: '29.99', symbol: '$', note: 'full' as const },
+  { region: 'Canada', currency: 'CAD', amount: '29.99', symbol: 'CA$', note: 'full' as const },
+  { region: 'Eurozone', currency: 'EUR', amount: '19.99', symbol: '€', note: 'full' as const },
+  { region: 'India', currency: 'INR', amount: '999', symbol: '₹', note: 'full' as const },
+  { region: 'Mexico', currency: 'MXN', amount: '290', symbol: 'MX$', note: 'latam' as const },
+  { region: 'Brazil', currency: 'BRL', amount: '89.99', symbol: 'R$', note: 'latam' as const },
+  { region: 'Argentina', currency: 'ARS', amount: '14999', symbol: 'AR$', note: 'latam' as const },
+  { region: 'Colombia', currency: 'COP', amount: '59900', symbol: 'COL$', note: 'latam' as const },
+  { region: 'Chile', currency: 'CLP', amount: '14900', symbol: 'CLP$', note: 'latam' as const },
+  { region: 'Peru', currency: 'PEN', amount: '59.90', symbol: 'S/', note: 'latam' as const },
 ] as const;
 
 /** @deprecated use REGIONAL_PRICE_TARGETS_MONTHLY */

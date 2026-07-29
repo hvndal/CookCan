@@ -97,10 +97,12 @@ export default function PaywallScreen({ navigation, route }: Props) {
       </View>
 
       <Text style={styles.regionTitle}>Monthly regional targets</Text>
+      <Text style={styles.latamNote}>LATAM priced at ~USD 1.50 equivalent</Text>
       {REGIONAL_PRICE_TARGETS_MONTHLY.map((r) => (
         <Text key={`m-${r.region}`} style={styles.regionRow}>
           {r.region}: {r.symbol}
           {r.amount}/{r.currency} mo
+          {'note' in r && r.note === 'latam' ? ' · LATAM' : ''}
         </Text>
       ))}
 
@@ -245,5 +247,11 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
   },
   regionRow: { marginTop: 8, color: colors.muted },
+  latamNote: {
+    marginTop: 6,
+    color: colors.primaryDark,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   footnote: { marginTop: 12, color: colors.tabInactive, fontSize: 13, lineHeight: 18 },
 });
