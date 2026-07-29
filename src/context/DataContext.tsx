@@ -42,7 +42,7 @@ type DataContextValue = {
   clearChat: () => Promise<void>;
   setDiets: (diets: string[]) => Promise<void>;
   consumeScan: () => Promise<boolean>;
-  seedDemoPantry: () => Promise<void>;
+  seedStarterPantry: () => Promise<void>;
 };
 
 const DataContext = createContext<DataContextValue | undefined>(undefined);
@@ -213,7 +213,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return true;
   }, [isPro, scansUsed]);
 
-  const seedDemoPantry = useCallback(async () => {
+  const seedStarterPantry = useCallback(async () => {
     if (pantry.length) return;
     const defaults: Omit<PantryItem, 'id' | 'createdAt'>[] = [
       { name: 'Wild Salmon', quantity: 1, unit: 'lb', category: 'Meat', freshness: 'Fresh' },
@@ -250,7 +250,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       clearChat,
       setDiets,
       consumeScan,
-      seedDemoPantry,
+      seedStarterPantry,
     }),
     [
       ready,
@@ -276,7 +276,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       clearChat,
       setDiets,
       consumeScan,
-      seedDemoPantry,
+      seedStarterPantry,
     ]
   );
 

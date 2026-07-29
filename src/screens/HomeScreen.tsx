@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 import { Camera, ChefHat, Crown, ShoppingBasket } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../context/DataContext';
@@ -20,16 +21,17 @@ import { SectionLabel } from '../components/ui';
 import { useRootNavigation } from '../navigation/useRootNavigation';
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const rootNav = useRootNavigation();
   const tabNav = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
   const { user } = useAuth();
-  const { pantry, recipes, scansRemaining, canScan, seedDemoPantry } = useData();
+  const { pantry, recipes, scansRemaining, canScan, seedStarterPantry } = useData();
   const { isPro, localizedPrice } = useBilling();
 
   useEffect(() => {
-    seedDemoPantry();
-  }, [seedDemoPantry]);
+    seedStarterPantry();
+  }, [seedStarterPantry]);
 
   function openScan() {
     if (!canScan) {
@@ -39,6 +41,8 @@ export default function HomeScreen() {
     rootNav.navigate('Scanning');
   }
 
+  const name = user?.email?.split('@')[0];
+
   return (
     <ScrollView
       style={styles.screen}
@@ -46,9 +50,9 @@ export default function HomeScreen() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.brand}>CookCan</Text>
+          <Text style={styles.brand}>{t('brand')}</Text>
           <Text style={styles.hello}>
-            {user?.email ? `Hello, ${user.email.split('@')[0]}` : 'Ready to cook'}
+            {name ? t('helloName', { name }) : t('homeHello')}
           </Text>
         </View>
         <Pressable onPress={() => rootNav.navigate('Profile')} style={styles.avatar}>
@@ -65,11 +69,13 @@ export default function HomeScreen() {
         <View style={styles.heroIcon}>
           <Camera color={colors.white} size={28} />
         </View>
-        <Text style={styles.heroTitle}>Scan ingredients</Text>
+        <Text style={styles.heroTitle}>{t('scanTitle')}</Text>
         <Text style={styles.heroSub}>
           {isPro
-            ? 'Unlimited Pro scans · Gemini recipes'
-            : `${scansRemaining === Infinity ? FREE_SCANS_PER_MONTH : scansRemaining} free scans left this month`}
+            ? t('scanSubPro')
+            : t('scanSubFree', {
+                count: scansRemaining === Infinity ? FREE_SCANS_PER_MONTH : scansRemaining,
+              })}
         </Text>
       </Pressable>
 
@@ -80,8 +86,8 @@ export default function HomeScreen() {
         >
           <Crown color={colors.pro} size={20} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.proTitle}>CookCan Pro · {localizedPrice}</Text>
-            <Text style={styles.proSub}>Unlimited scans · AI Chef · Meal planner</Text>
+            <Text style={styles.proTitle}>{t('proBannerTitle', { price: localizedPrice })}</Text>
+            <Text style={styles.proSub}>{t('proBannerSub')}</Text>
           </View>
         </Pressable>
       )}
@@ -89,7 +95,7 @@ export default function HomeScreen() {
       <View style={styles.row}>
         <QuickCard
           icon={<ChefHat color={colors.primary} size={22} />}
-          title="Recipes"
+          title={t('recipes')}
           value={String(recipes.length)}
           onPress={() => {
             if (recipes[0]) rootNav.navigate('RecipeDetail', { recipeId: recipes[0].id });
@@ -97,16 +103,16 @@ export default function HomeScreen() {
         />
         <QuickCard
           icon={<ShoppingBasket color={colors.primary} size={22} />}
-          title="Pantry"
+          title={t('pantry')}
           value={String(pantry.length)}
           onPress={() => tabNav.navigate('Pantry')}
         />
       </View>
 
       <View style={{ paddingHorizontal: 20, marginTop: 28 }}>
-        <SectionLabel>Continue cooking</SectionLabel>
+        <SectionLabel>{t('continueCooking')}</SectionLabel>
         {recipes.length === 0 ? (
-          <Text style={styles.empty}>Scan your fridge to generate your first recipes.</Text>
+          <Text style={styles.empty}>{t('emptyRecipes')}</Text>
         ) : (
           recipes.slice(0, 5).map((r) => (
             <Pressable
@@ -125,11 +131,8 @@ export default function HomeScreen() {
         )}
       </View>
 
-      <Pressable
-        onPress={() => rootNav.navigate('MealPlanner')}
-        style={styles.mealLink}
-      >
-        <Text style={styles.mealLinkText}>Open meal planner →</Text>
+      <Pressable onPress={() => rootNav.navigate('MealPlanner')} style={styles.mealLink}>
+        <Text style={styles.mealLinkText}>{t('mealPlannerLink')}</Text>
       </Pressable>
     </ScrollView>
   );

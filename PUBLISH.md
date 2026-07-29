@@ -20,8 +20,12 @@ SKUs: `cookcan_pro_monthly`, `cookcan_pro_yearly` · **7-day free trial** on bot
 
 ### 1. App identity & assets — DONE in repo
 - [x] Brand splash + adaptive icons
+- [x] Logo-based Play feature graphic (`assets/feature-graphic.png` 1024×500)
+- [x] Store / promo thumbnails (`assets/store-thumbnail.png`, `assets/promo-thumbnail.png`)
 - [x] Package `com.cookcan.app`
 - [x] Camera / billing permissions
+- [x] Locale-aware UI (EN/PT/ES/FR/DE) · India forced English · one-tap Switch to English
+- [x] Local currency price display by detected country (e.g. Brazil → R$)
 - [ ] Replace placeholder `extra.eas.projectId` after `eas init`
 - [ ] Host real Privacy Policy + Terms URLs (update `app.json` → `extra`)
 

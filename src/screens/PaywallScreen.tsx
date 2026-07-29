@@ -2,36 +2,22 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/Button';
 import { useBilling } from '../context/BillingContext';
-import {
-  FREE_SCANS_PER_MONTH,
-  FREE_TRIAL_DAYS,
-  PLANS,
-  PRO_MONTHLY_PRODUCT_ID,
-  PRO_YEARLY_PRODUCT_ID,
-  REGIONAL_PRICE_TARGETS_MONTHLY,
-  REGIONAL_PRICE_TARGETS_YEARLY,
-  YEARLY_DISCOUNT_LABEL,
-  type BillingPeriod,
-} from '../constants/billing';
+import { useSettings } from '../context/SettingsContext';
+import { FREE_SCANS_PER_MONTH, FREE_TRIAL_DAYS, PLANS, type BillingPeriod } from '../constants/billing';
 import { colors } from '../theme/colors';
 import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Paywall'>;
 
-const REASON_COPY: Record<string, string> = {
-  scan_limit: `You've used your ${FREE_SCANS_PER_MONTH} free scans this month.`,
-  ai_chef: 'AI Chef is included with CookCan Pro.',
-  meal_planner: 'Meal planner is included with CookCan Pro.',
-  upgrade: 'Unlock the full CookCan kitchen.',
-  profile: 'Manage your CookCan Pro subscription.',
-};
-
 export default function PaywallScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const reason = route.params?.reason ?? 'upgrade';
   const [period, setPeriod] = useState<BillingPeriod>('yearly');
+  const { countryLabel, locale } = useSettings();
   const {
     isPro,
     localizedPrice,
@@ -44,7 +30,17 @@ export default function PaywallScreen({ navigation, route }: Props) {
   } = useBilling();
 
   const selectedPrice = period === 'yearly' ? localizedYearlyPrice : localizedPrice;
-  const selectedSku = period === 'yearly' ? PRO_YEARLY_PRODUCT_ID : PRO_MONTHLY_PRODUCT_ID;
+
+  const headline =
+    reason === 'scan_limit'
+      ? t('paywallScanLimit', { count: FREE_SCANS_PER_MONTH })
+      : reason === 'ai_chef'
+        ? t('paywallAi')
+        : reason === 'meal_planner'
+          ? t('paywallMeal')
+          : reason === 'profile'
+            ? t('paywallProfile')
+            : t('paywallUpgrade');
 
   return (
     <ScrollView
@@ -55,23 +51,25 @@ export default function PaywallScreen({ navigation, route }: Props) {
         paddingHorizontal: 20,
       }}
     >
-      <Text style={styles.brand}>CookCan Pro</Text>
-      <Text style={styles.headline}>{REASON_COPY[reason] ?? REASON_COPY.upgrade}</Text>
+      <Text style={styles.brand}>{t('paywallBrand')}</Text>
+      <Text style={styles.headline}>{headline}</Text>
       <Text style={styles.sub}>
-        Start with a {FREE_TRIAL_DAYS}-day free trial. Prices are localized by Google Play for
-        your country. AI Chef stays Pro-only.
+        {t('paywallSub', { days: FREE_TRIAL_DAYS, region: countryLabel })}
+      </Text>
+      <Text style={styles.currencyNote}>
+        {t('localPricing', { currency: locale.currencyCode })} · {countryLabel}
       </Text>
 
       <View style={styles.toggleRow}>
         <PeriodChip
-          label="Yearly"
-          detail={`${localizedYearlyPrice} · ${YEARLY_DISCOUNT_LABEL}`}
+          label={t('yearly')}
+          detail={`${localizedYearlyPrice} · ${t('monthsFree')}`}
           selected={period === 'yearly'}
-          badge="Best value"
+          badge={t('bestValue')}
           onPress={() => setPeriod('yearly')}
         />
         <PeriodChip
-          label="Monthly"
+          label={t('monthly')}
           detail={localizedPrice}
           selected={period === 'monthly'}
           onPress={() => setPeriod('monthly')}
@@ -79,12 +77,12 @@ export default function PaywallScreen({ navigation, route }: Props) {
       </View>
 
       <View style={styles.priceCard}>
-        <Text style={styles.trial}>{PLANS.pro.trialLabel}</Text>
-        <Text style={styles.price}>{isPro ? 'Active' : selectedPrice}</Text>
+        <Text style={styles.trial}>{t('trialLabel', { days: FREE_TRIAL_DAYS })}</Text>
+        <Text style={styles.price}>{isPro ? '✓' : selectedPrice}</Text>
         <Text style={styles.priceMeta}>
           {isPro
-            ? `${subscription.billingPeriod ?? 'pro'} · ${subscription.productId ?? ''}`
-            : `Then ${selectedPrice} · SKU ${selectedSku}`}
+            ? `${subscription.billingPeriod ?? 'pro'}`
+            : t('thenPrice', { price: selectedPrice })}
         </Text>
       </View>
 
@@ -96,46 +94,23 @@ export default function PaywallScreen({ navigation, route }: Props) {
         ))}
       </View>
 
-      <Text style={styles.regionTitle}>Monthly regional targets</Text>
-      <Text style={styles.latamNote}>LATAM priced at ~USD 1.50 equivalent</Text>
-      {REGIONAL_PRICE_TARGETS_MONTHLY.map((r) => (
-        <Text key={`m-${r.region}`} style={styles.regionRow}>
-          {r.region}: {r.symbol}
-          {r.amount}/{r.currency} mo
-          {'note' in r && r.note === 'latam' ? ' · LATAM' : ''}
-        </Text>
-      ))}
-
-      <Text style={styles.regionTitle}>Yearly regional targets ({YEARLY_DISCOUNT_LABEL})</Text>
-      {REGIONAL_PRICE_TARGETS_YEARLY.map((r) => (
-        <Text key={`y-${r.region}`} style={styles.regionRow}>
-          {r.region}: {r.symbol}
-          {r.amount}/{r.currency} yr
-        </Text>
-      ))}
-      <Text style={styles.footnote}>
-        Product IDs (SKUs) are the Play Console catalog codes the app purchases. Create
-        `{PRO_MONTHLY_PRODUCT_ID}` and `{PRO_YEARLY_PRODUCT_ID}` with a {FREE_TRIAL_DAYS}-day
-        free trial offer. The charged price always comes from Play for the user’s store country.
-      </Text>
-
       {!isPro && (
         <Button
-          label={`Start ${FREE_TRIAL_DAYS}-day trial · ${selectedPrice}`}
+          label={t('startTrial', { days: FREE_TRIAL_DAYS, price: selectedPrice })}
           onPress={() => purchasePro(period)}
           loading={purchasing}
           style={{ marginTop: 22 }}
         />
       )}
       <Button
-        label="Restore purchases"
+        label={t('restore')}
         variant="secondary"
         onPress={restorePurchases}
         style={{ marginTop: 12 }}
       />
       {__DEV__ && !isPro && (
         <Button
-          label={`Unlock Pro ${period} (dev)`}
+          label={`QA · Pro ${period}`}
           variant="ghost"
           onPress={async () => {
             await activateProMock(period);
@@ -144,7 +119,7 @@ export default function PaywallScreen({ navigation, route }: Props) {
           style={{ marginTop: 8 }}
         />
       )}
-      <Button label="Not now" variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: 8 }} />
+      <Button label={t('notNow')} variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: 8 }} />
     </ScrollView>
   );
 }
@@ -192,6 +167,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   sub: { marginTop: 10, color: colors.muted, lineHeight: 22 },
+  currencyNote: {
+    marginTop: 8,
+    color: colors.primaryDark,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   toggleRow: { marginTop: 20, gap: 10 },
   chip: {
     backgroundColor: colors.surface,
@@ -238,20 +219,4 @@ const styles = StyleSheet.create({
   priceMeta: { color: 'rgba(255,255,255,0.8)', marginTop: 6 },
   features: { marginTop: 22, gap: 10 },
   feature: { fontSize: 16, color: colors.charcoal, fontWeight: '600' },
-  regionTitle: {
-    marginTop: 28,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.primaryDark,
-  },
-  regionRow: { marginTop: 8, color: colors.muted },
-  latamNote: {
-    marginTop: 6,
-    color: colors.primaryDark,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  footnote: { marginTop: 12, color: colors.tabInactive, fontSize: 13, lineHeight: 18 },
 });

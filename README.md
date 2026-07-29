@@ -41,9 +41,13 @@ Attach a **7-day free trial** offer on both.
 | Chile | CLP 1490 | CLP 14900 |
 | Peru | PEN 5.99 | PEN 59.90 |
 
-The paywall always shows `localizedPrice` / `localizedYearlyPrice` from `expo-iap` / Play Billing.
+The paywall always shows Play’s localized price when available; otherwise the **country-local target** (e.g. Brazil → `R$8.99/mês`, not USD).
+
+**Language:** auto-detect from device (PT/ES/FR/DE/EN). **India stays English.** Profile + login include **Switch to English**.
 
 **Ship checklist:** see [PUBLISH.md](PUBLISH.md) for the full publishable / Play Store plan.
+
+**Store art:** `assets/feature-graphic.png`, `assets/store-thumbnail.png`, `assets/promo-thumbnail.png` (logo-based).
 
 
 ## Run locally

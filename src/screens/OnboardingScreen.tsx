@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { useSettings } from '../context/SettingsContext';
 import { storage } from '../lib/storage';
 import { Button } from '../components/Button';
 import { LinearishBackground } from '../components/LinearishBackground';
 import { colors } from '../theme/colors';
+import {
+  COUNTRY_LABELS,
+  type CountryCode,
+} from '../lib/locale';
 
-const COUNTRIES = ['United States', 'Canada', 'India', 'Mexico', 'Brazil', 'Germany', 'France', 'Other'];
+const COUNTRIES: CountryCode[] = ['US', 'CA', 'BR', 'MX', 'IN', 'DE', 'FR', 'AR', 'CO', 'CL', 'PE'];
 const DIETS = ['Vegetarian', 'Vegan', 'Gluten-free', 'Halal', 'Kosher', 'Dairy-free', 'Keto'];
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const { completeOnboarding } = useAuth();
-  const { setDiets, seedDemoPantry } = useData();
+  const { setDiets, seedStarterPantry } = useData();
+  const { country, setCountryOverride, countryLabel } = useSettings();
   const [step, setStep] = useState(0);
-  const [country, setCountry] = useState('United States');
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(country);
   const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
 
   async function finish() {
-    await storage.setCountry(country);
+    await setCountryOverride(selectedCountry);
+    await storage.setCountry(COUNTRY_LABELS[selectedCountry]);
     await setDiets(selectedDiets);
-    await seedDemoPantry();
+    await seedStarterPantry();
     await completeOnboarding();
   }
 
@@ -29,35 +38,38 @@ export default function OnboardingScreen() {
       <View style={styles.wrap}>
         {step === 0 && (
           <>
-            <Text style={styles.title}>Welcome to CookCan</Text>
-            <Text style={styles.sub}>Your Michelin-star kitchen companion for effortless cooking.</Text>
-            <Button label="Get started" onPress={() => setStep(1)} style={{ marginTop: 32 }} />
+            <Text style={styles.title}>{t('welcomeTitle')}</Text>
+            <Text style={styles.sub}>{t('welcomeSub')}</Text>
+            <Text style={styles.hint}>{t('detectedRegion', { region: countryLabel })}</Text>
+            <Button label={t('getStarted')} onPress={() => setStep(1)} style={{ marginTop: 32 }} />
           </>
         )}
 
         {step === 1 && (
           <>
-            <Text style={styles.title}>Where do you cook?</Text>
-            <Text style={styles.sub}>Used for cuisine inspiration and regional Pro pricing.</Text>
+            <Text style={styles.title}>{t('whereCook')}</Text>
+            <Text style={styles.sub}>{t('whereCookSub')}</Text>
             <View style={styles.chips}>
               {COUNTRIES.map((c) => (
                 <Pressable
                   key={c}
-                  onPress={() => setCountry(c)}
-                  style={[styles.chip, country === c && styles.chipOn]}
+                  onPress={() => setSelectedCountry(c)}
+                  style={[styles.chip, selectedCountry === c && styles.chipOn]}
                 >
-                  <Text style={[styles.chipText, country === c && styles.chipTextOn]}>{c}</Text>
+                  <Text style={[styles.chipText, selectedCountry === c && styles.chipTextOn]}>
+                    {COUNTRY_LABELS[c]}
+                  </Text>
                 </Pressable>
               ))}
             </View>
-            <Button label="Continue" onPress={() => setStep(2)} style={{ marginTop: 24 }} />
+            <Button label={t('continue')} onPress={() => setStep(2)} style={{ marginTop: 24 }} />
           </>
         )}
 
         {step === 2 && (
           <>
-            <Text style={styles.title}>Dietary preferences</Text>
-            <Text style={styles.sub}>Optional — helps Gemini personalize recipes.</Text>
+            <Text style={styles.title}>{t('dietary')}</Text>
+            <Text style={styles.sub}>{t('dietarySub')}</Text>
             <View style={styles.chips}>
               {DIETS.map((d) => {
                 const on = selectedDiets.includes(d);
@@ -76,7 +88,7 @@ export default function OnboardingScreen() {
                 );
               })}
             </View>
-            <Button label="Enter kitchen" onPress={finish} style={{ marginTop: 24 }} />
+            <Button label={t('enterKitchen')} onPress={finish} style={{ marginTop: 24 }} />
           </>
         )}
       </View>
@@ -93,6 +105,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
   },
   sub: { marginTop: 10, fontSize: 16, lineHeight: 22, color: colors.muted },
+  hint: { marginTop: 14, color: colors.primaryDark, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 28 },
   chip: {
     paddingHorizontal: 14,

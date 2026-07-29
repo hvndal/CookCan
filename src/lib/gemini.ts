@@ -42,7 +42,7 @@ async function callGemini(parts: Array<Record<string, unknown>>, system?: string
   return text;
 }
 
-function demoIngredients(): Array<{ name: string; quantity: number; unit: string; category: string }> {
+function localIngredients(): Array<{ name: string; quantity: number; unit: string; category: string }> {
   return [
     { name: 'Tomato', quantity: 2, unit: 'pcs', category: 'Produce' },
     { name: 'Garlic', quantity: 1, unit: 'bulb', category: 'Produce' },
@@ -51,7 +51,7 @@ function demoIngredients(): Array<{ name: string; quantity: number; unit: string
   ];
 }
 
-function demoRecipes(ingredients: string[]): Recipe[] {
+function localRecipes(ingredients: string[]): Recipe[] {
   const list = ingredients.slice(0, 4).join(', ') || 'pantry staples';
   return [
     {
@@ -92,7 +92,7 @@ export async function analyzeIngredientImage(
   mimeType = 'image/jpeg'
 ): Promise<Array<{ name: string; quantity: number; unit: string; category: string }>> {
   if (!apiKey()) {
-    return demoIngredients();
+    return localIngredients();
   }
 
   const text = await callGemini(
@@ -109,9 +109,9 @@ export async function analyzeIngredientImage(
 
   try {
     const parsed = JSON.parse(text);
-    return parsed.ingredients ?? demoIngredients();
+    return parsed.ingredients ?? localIngredients();
   } catch {
-    return demoIngredients();
+    return localIngredients();
   }
 }
 
@@ -120,7 +120,7 @@ export async function generateRecipesFromPantry(
   diets: string[] = []
 ): Promise<Recipe[]> {
   if (!apiKey()) {
-    return demoRecipes(ingredients);
+    return localRecipes(ingredients);
   }
 
   const text = await callGemini(
@@ -140,7 +140,7 @@ export async function generateRecipesFromPantry(
       createdAt: Date.now(),
     }));
   } catch {
-    return demoRecipes(ingredients);
+    return localRecipes(ingredients);
   }
 }
 

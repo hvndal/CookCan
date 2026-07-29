@@ -23,7 +23,6 @@ import {
 } from 'expo-iap';
 import {
   FREE_TRIAL_DAYS,
-  PLANS,
   PRO_MONTHLY_PRODUCT_ID,
   PRO_PRODUCT_IDS,
   PRO_YEARLY_PRODUCT_ID,
@@ -34,6 +33,7 @@ import {
 } from '../constants/billing';
 import { storage } from '../lib/storage';
 import type { SubscriptionState } from '../types';
+import { useSettings } from './SettingsContext';
 
 type BillingContextValue = {
   ready: boolean;
@@ -78,13 +78,12 @@ function findProduct(
 
 function pickLocalizedPrice(
   product: ProductSubscription | null | undefined,
-  period: BillingPeriod
-): { label: string; currency: string | null } {
-  const fallback =
-    period === 'yearly' ? PLANS.pro.fallbackYearlyLabel : PLANS.pro.fallbackMonthlyLabel;
+  period: BillingPeriod,
+  regionalFallback: string
+): { label: string; currency: string | null; fromStore: boolean } {
   const suffix = period === 'yearly' ? '/yr' : '/mo';
 
-  if (!product) return { label: fallback, currency: null };
+  if (!product) return { label: regionalFallback, currency: null, fromStore: false };
 
   const anyProduct = product as ProductSubscription & {
     displayPrice?: string;
@@ -98,8 +97,10 @@ function pickLocalizedPrice(
 
   if (anyProduct.displayPrice) {
     const raw = anyProduct.displayPrice;
-    const label = raw.includes('/') ? raw : `${raw}${suffix}`;
-    return { label, currency: anyProduct.currency ?? null };
+    const label = /\/|per|mês|mes|mois|Mon|año|ano|Jahr|year|month/i.test(raw)
+      ? raw
+      : `${raw}${suffix}`;
+    return { label, currency: anyProduct.currency ?? null, fromStore: true };
   }
 
   const phase =
@@ -108,10 +109,11 @@ function pickLocalizedPrice(
     return {
       label: `${phase.formattedPrice}${suffix}`,
       currency: phase.priceCurrencyCode ?? null,
+      fromStore: true,
     };
   }
 
-  return { label: fallback, currency: null };
+  return { label: regionalFallback, currency: null, fromStore: false };
 }
 
 function offerTokenFor(product?: ProductSubscription | null): string | undefined {
@@ -121,6 +123,7 @@ function offerTokenFor(product?: ProductSubscription | null): string | undefined
 }
 
 export function BillingProvider({ children }: { children: ReactNode }) {
+  const { localPrice, country, locale } = useSettings();
   const [ready, setReady] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionState>(defaultSub);
   const [products, setProducts] = useState<ProductSubscription[]>([]);
@@ -128,6 +131,9 @@ export function BillingProvider({ children }: { children: ReactNode }) {
   const [storeConnected, setStoreConnected] = useState(false);
   const subscriptionRef = useRef(subscription);
   subscriptionRef.current = subscription;
+
+  const regionalMonthly = localPrice('monthly');
+  const regionalYearly = localPrice('yearly');
 
   const persist = useCallback(async (next: SubscriptionState) => {
     setSubscription(next);
@@ -171,6 +177,13 @@ export function BillingProvider({ children }: { children: ReactNode }) {
 
     try {
       if (Platform.OS === 'web') {
+        await persist({
+          ...saved,
+          localizedPrice: regionalMonthly.label,
+          localizedYearlyPrice: regionalYearly.label,
+          currencyCode: locale.currencyCode,
+          storeCountry: country,
+        });
         setReady(true);
         return;
       }
@@ -186,8 +199,16 @@ export function BillingProvider({ children }: { children: ReactNode }) {
       const list = subs ?? [];
       setProducts(list);
 
-      const monthly = pickLocalizedPrice(findProduct(list, PRO_MONTHLY_PRODUCT_ID), 'monthly');
-      const yearly = pickLocalizedPrice(findProduct(list, PRO_YEARLY_PRODUCT_ID), 'yearly');
+      const monthly = pickLocalizedPrice(
+        findProduct(list, PRO_MONTHLY_PRODUCT_ID),
+        'monthly',
+        regionalMonthly.label
+      );
+      const yearly = pickLocalizedPrice(
+        findProduct(list, PRO_YEARLY_PRODUCT_ID),
+        'yearly',
+        regionalYearly.label
+      );
 
       let activeProductId: string | null = null;
       try {
@@ -210,6 +231,12 @@ export function BillingProvider({ children }: { children: ReactNode }) {
         periodForProductId(saved.productId) ??
         'monthly';
 
+      // Prefer Play store price when present; otherwise country-local target (never force USD on BR etc.)
+      const monthlyLabel = monthly.fromStore ? monthly.label : regionalMonthly.label;
+      const yearlyLabel = yearly.fromStore ? yearly.label : regionalYearly.label;
+      const currency =
+        monthly.currency ?? yearly.currency ?? locale.currencyCode ?? regionalMonthly.currency;
+
       await persist({
         planId: isPro ? 'pro' : 'free',
         productId: isPro ? activeProductId ?? productIdForPeriod(period) : null,
@@ -219,17 +246,24 @@ export function BillingProvider({ children }: { children: ReactNode }) {
             Date.now() + (period === 'yearly' ? 365 : 30) * 86400000
           : null,
         isActive: isPro,
-        localizedPrice: monthly.label,
-        localizedYearlyPrice: yearly.label,
-        currencyCode: monthly.currency ?? yearly.currency,
-        storeCountry: saved.storeCountry,
+        localizedPrice: monthlyLabel,
+        localizedYearlyPrice: yearlyLabel,
+        currencyCode: currency,
+        storeCountry: country,
       });
     } catch {
       setStoreConnected(false);
+      await persist({
+        ...saved,
+        localizedPrice: regionalMonthly.label,
+        localizedYearlyPrice: regionalYearly.label,
+        currencyCode: locale.currencyCode,
+        storeCountry: country,
+      });
     } finally {
       setReady(true);
     }
-  }, [persist]);
+  }, [persist, regionalMonthly.label, regionalYearly.label, regionalMonthly.currency, locale.currencyCode, country]);
 
   useEffect(() => {
     void refresh();
@@ -275,7 +309,7 @@ export function BillingProvider({ children }: { children: ReactNode }) {
         if (!storeConnected || Platform.OS === 'web') {
           Alert.alert(
             'Store unavailable',
-            'Google Play Billing needs a development build and Play Console subscriptions. Use “Unlock Pro (dev)” on the paywall for local testing.'
+            'Open a Play-enabled build to subscribe. Prices above already reflect your local currency.'
           );
           setPurchasing(false);
           return false;
@@ -335,23 +369,40 @@ export function BillingProvider({ children }: { children: ReactNode }) {
     async (period: BillingPeriod = 'yearly') => {
       await applyActive(true, {
         billingPeriod: period,
-        localizedPrice:
-          subscriptionRef.current.localizedPrice ?? PLANS.pro.fallbackMonthlyLabel,
-        localizedYearlyPrice:
-          subscriptionRef.current.localizedYearlyPrice ?? PLANS.pro.fallbackYearlyLabel,
+        localizedPrice: regionalMonthly.label,
+        localizedYearlyPrice: regionalYearly.label,
+        currencyCode: locale.currencyCode,
+        storeCountry: country,
       });
     },
-    [applyActive]
+    [applyActive, regionalMonthly.label, regionalYearly.label, locale.currencyCode, country]
   );
 
   const deactivateProMock = useCallback(async () => {
     await applyActive(false);
   }, [applyActive]);
 
-  const monthly = pickLocalizedPrice(findProduct(products, PRO_MONTHLY_PRODUCT_ID), 'monthly');
-  const yearly = pickLocalizedPrice(findProduct(products, PRO_YEARLY_PRODUCT_ID), 'yearly');
-  const displayMonthly = subscription.localizedPrice ?? monthly.label;
-  const displayYearly = subscription.localizedYearlyPrice ?? yearly.label;
+  // Always prefer live subscription labels; fall back to country-local targets (BRL, MXN, …)
+  const playMonthly = pickLocalizedPrice(
+    findProduct(products, PRO_MONTHLY_PRODUCT_ID),
+    'monthly',
+    regionalMonthly.label
+  );
+  const playYearly = pickLocalizedPrice(
+    findProduct(products, PRO_YEARLY_PRODUCT_ID),
+    'yearly',
+    regionalYearly.label
+  );
+  const displayMonthly = playMonthly.fromStore
+    ? playMonthly.label
+    : subscription.localizedPrice && subscription.storeCountry === country
+      ? subscription.localizedPrice
+      : regionalMonthly.label;
+  const displayYearly = playYearly.fromStore
+    ? playYearly.label
+    : subscription.localizedYearlyPrice && subscription.storeCountry === country
+      ? subscription.localizedYearlyPrice
+      : regionalYearly.label;
 
   const value = useMemo(
     () => ({
