@@ -19,13 +19,16 @@ SKUs: `cookcan_pro_monthly`, `cookcan_pro_yearly` · **7-day free trial** on bot
 ## Phase checklist
 
 ### 1. App identity & assets — DONE in repo
-- [x] Brand splash + adaptive icons
+- [x] Brand splash + adaptive icons (OG rose/sage palette)
 - [x] Logo-based Play feature graphic (`assets/feature-graphic.png` 1024×500)
 - [x] Store / promo thumbnails (`assets/store-thumbnail.png`, `assets/promo-thumbnail.png`)
 - [x] Package `com.cookcan.app`
 - [x] Camera / billing permissions
 - [x] Locale-aware UI (EN/PT/ES/FR/DE) · India forced English · one-tap Switch to English
 - [x] Local currency price display by detected country (e.g. Brazil → R$)
+- [x] Cuisine + dietary preference onboarding (Italian/Indian/Japanese… + keto/vegan/gluten-free…)
+- [x] Google + email Firebase auth · guest fallback
+- [x] Scan → refine mood → thinking loader → curated recipes → cooking mode
 - [ ] Replace placeholder `extra.eas.projectId` after `eas init`
 - [ ] Host real Privacy Policy + Terms URLs (update `app.json` → `extra`)
 

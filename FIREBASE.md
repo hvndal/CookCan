@@ -15,6 +15,9 @@ CookCan uses **Firebase Auth** (email/password) and **Firestore** for:
 
 ### Authentication
 - **Sign-in method** → enable **Email/Password**
+- **Sign-in method** → enable **Google**
+  - Copy the **Web client ID** into `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+  - Add your Android SHA-1 from `eas credentials` / Play Console to the Firebase Android app
 
 ### Firestore
 - Create database (production mode)
@@ -54,6 +57,7 @@ Copy `.env.example` → `.env` and fill in:
 | `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Sender ID |
 | `EXPO_PUBLIC_FIREBASE_APP_ID` | App ID |
 | `EXPO_PUBLIC_ADMIN_EMAILS` | Comma-separated owner emails |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Firebase Google provider Web client ID |
 | `EXPO_PUBLIC_GEMINI_API_KEY` | Google AI / Gemini API key |
 
 For EAS production builds:

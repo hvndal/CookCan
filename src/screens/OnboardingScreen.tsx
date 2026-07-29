@@ -1,121 +1,149 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useSettings } from '../context/SettingsContext';
-import { storage } from '../lib/storage';
 import { Button } from '../components/Button';
-import { LinearishBackground } from '../components/LinearishBackground';
+import { PillChip } from '../components/PillChip';
+import { CUISINES, DIETARY_PREFS } from '../constants/preferences';
+import { storage } from '../lib/storage';
+import { COUNTRY_LABELS, type CountryCode } from '../lib/locale';
 import { colors } from '../theme/colors';
-import {
-  COUNTRY_LABELS,
-  type CountryCode,
-} from '../lib/locale';
 
 const COUNTRIES: CountryCode[] = ['US', 'CA', 'BR', 'MX', 'IN', 'DE', 'FR', 'AR', 'CO', 'CL', 'PE'];
-const DIETS = ['Vegetarian', 'Vegan', 'Gluten-free', 'Halal', 'Kosher', 'Dairy-free', 'Keto'];
 
 export default function OnboardingScreen() {
-  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { completeOnboarding } = useAuth();
-  const { setDiets, seedStarterPantry } = useData();
+  const { setDiets, setCuisines, seedStarterPantry } = useData();
   const { country, setCountryOverride, countryLabel } = useSettings();
   const [step, setStep] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(country);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(['Italian', 'Indian']);
   const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
+
+  function toggle(list: string[], value: string, setter: (v: string[]) => void) {
+    setter(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+  }
 
   async function finish() {
     await setCountryOverride(selectedCountry);
     await storage.setCountry(COUNTRY_LABELS[selectedCountry]);
+    await setCuisines(selectedCuisines);
     await setDiets(selectedDiets);
     await seedStarterPantry();
     await completeOnboarding();
   }
 
   return (
-    <LinearishBackground>
-      <View style={styles.wrap}>
-        {step === 0 && (
-          <>
-            <Text style={styles.title}>{t('welcomeTitle')}</Text>
-            <Text style={styles.sub}>{t('welcomeSub')}</Text>
-            <Text style={styles.hint}>{t('detectedRegion', { region: countryLabel })}</Text>
-            <Button label={t('getStarted')} onPress={() => setStep(1)} style={{ marginTop: 32 }} />
-          </>
-        )}
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={{
+        paddingTop: insets.top + 36,
+        paddingBottom: insets.bottom + 40,
+        paddingHorizontal: 24,
+      }}
+    >
+      {step === 0 && (
+        <>
+          <Text style={styles.kicker}>CookCan</Text>
+          <Text style={styles.title}>Welcome to your{'\n'}chef&apos;s atelier.</Text>
+          <Text style={styles.sub}>
+            Your Michelin-inspired kitchen companion. Scan ingredients, refine the mood, savor the
+            result.
+          </Text>
+          <Text style={styles.hint}>Detected region · {countryLabel}</Text>
+          <Button label="Get started" onPress={() => setStep(1)} style={{ marginTop: 36 }} pulse />
+        </>
+      )}
 
-        {step === 1 && (
-          <>
-            <Text style={styles.title}>{t('whereCook')}</Text>
-            <Text style={styles.sub}>{t('whereCookSub')}</Text>
-            <View style={styles.chips}>
-              {COUNTRIES.map((c) => (
-                <Pressable
-                  key={c}
-                  onPress={() => setSelectedCountry(c)}
-                  style={[styles.chip, selectedCountry === c && styles.chipOn]}
-                >
-                  <Text style={[styles.chipText, selectedCountry === c && styles.chipTextOn]}>
-                    {COUNTRY_LABELS[c]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            <Button label={t('continue')} onPress={() => setStep(2)} style={{ marginTop: 24 }} />
-          </>
-        )}
+      {step === 1 && (
+        <>
+          <Text style={styles.title}>Where do you cook?</Text>
+          <Text style={styles.sub}>Used for cuisine ideas and local Pro pricing.</Text>
+          <View style={styles.chips}>
+            {COUNTRIES.map((c) => (
+              <PillChip
+                key={c}
+                label={COUNTRY_LABELS[c]}
+                selected={selectedCountry === c}
+                onPress={() => setSelectedCountry(c)}
+              />
+            ))}
+          </View>
+          <Button label="Continue" onPress={() => setStep(2)} style={{ marginTop: 28 }} />
+        </>
+      )}
 
-        {step === 2 && (
-          <>
-            <Text style={styles.title}>{t('dietary')}</Text>
-            <Text style={styles.sub}>{t('dietarySub')}</Text>
-            <View style={styles.chips}>
-              {DIETS.map((d) => {
-                const on = selectedDiets.includes(d);
-                return (
-                  <Pressable
-                    key={d}
-                    onPress={() =>
-                      setSelectedDiets((prev) =>
-                        on ? prev.filter((x) => x !== d) : [...prev, d]
-                      )
-                    }
-                    style={[styles.chip, on && styles.chipOn]}
-                  >
-                    <Text style={[styles.chipText, on && styles.chipTextOn]}>{d}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Button label={t('enterKitchen')} onPress={finish} style={{ marginTop: 24 }} />
-          </>
-        )}
-      </View>
-    </LinearishBackground>
+      {step === 2 && (
+        <>
+          <Text style={styles.title}>Favorite cuisines</Text>
+          <Text style={styles.sub}>
+            Pick the kitchens you love — Italian, Indian, Japanese, and more. We&apos;ll bias recipes
+            toward these.
+          </Text>
+          <View style={styles.chips}>
+            {CUISINES.map((c) => (
+              <PillChip
+                key={c}
+                label={c}
+                selected={selectedCuisines.includes(c)}
+                onPress={() => toggle(selectedCuisines, c, setSelectedCuisines)}
+              />
+            ))}
+          </View>
+          <Button
+            label="Continue"
+            onPress={() => setStep(3)}
+            style={{ marginTop: 28 }}
+            disabled={selectedCuisines.length === 0}
+          />
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <Text style={styles.title}>Dietary preferences</Text>
+          <Text style={styles.sub}>
+            Optional — keto, calorie deficit, gluten-free, vegan, and more. Skip if you eat
+            everything.
+          </Text>
+          <View style={styles.chips}>
+            {DIETARY_PREFS.map((d) => (
+              <PillChip
+                key={d}
+                label={d}
+                selected={selectedDiets.includes(d)}
+                onPress={() => toggle(selectedDiets, d, setSelectedDiets)}
+              />
+            ))}
+          </View>
+          <Button label="Enter kitchen" onPress={finish} style={{ marginTop: 28 }} pulse />
+          <Button label="Skip for now" variant="ghost" onPress={finish} style={{ marginTop: 8 }} />
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, paddingHorizontal: 24, paddingTop: 100 },
+  screen: { flex: 1, backgroundColor: colors.cream },
+  kicker: {
+    color: colors.primary,
+    fontStyle: 'italic',
+    fontWeight: '800',
+    fontSize: 18,
+    marginBottom: 12,
+  },
   title: {
     fontSize: 34,
-    fontWeight: '800',
+    lineHeight: 40,
+    fontWeight: '700',
     color: colors.charcoal,
-    letterSpacing: -0.8,
+    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
   },
-  sub: { marginTop: 10, fontSize: 16, lineHeight: 22, color: colors.muted },
-  hint: { marginTop: 14, color: colors.primaryDark, fontWeight: '700' },
+  sub: { marginTop: 12, fontSize: 16, lineHeight: 24, color: colors.muted },
+  hint: { marginTop: 16, color: colors.primaryDark, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 28 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.outline,
-  },
-  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.charcoal, fontWeight: '600' },
-  chipTextOn: { color: colors.white },
 });

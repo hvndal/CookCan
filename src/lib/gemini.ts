@@ -117,19 +117,42 @@ export async function analyzeIngredientImage(
 
 export async function generateRecipesFromPantry(
   ingredients: string[],
-  diets: string[] = []
+  prefs:
+    | string[]
+    | {
+        diets?: string[];
+        cuisines?: string[];
+        mealType?: string;
+        cookTimeMinutes?: number;
+        note?: string;
+      } = []
 ): Promise<Recipe[]> {
+  const diets = Array.isArray(prefs) ? prefs : prefs.diets ?? [];
+  const cuisines = Array.isArray(prefs) ? [] : prefs.cuisines ?? [];
+  const mealType = Array.isArray(prefs) ? 'Dinner' : prefs.mealType ?? 'Dinner';
+  const cookTimeMinutes = Array.isArray(prefs) ? 30 : prefs.cookTimeMinutes ?? 30;
+  const note = Array.isArray(prefs) ? '' : prefs.note ?? '';
+
   if (!apiKey()) {
-    return localRecipes(ingredients);
+    return localRecipes(ingredients).map((r) => ({
+      ...r,
+      cuisine: cuisines[0] || r.cuisine,
+      cookTimeMinutes,
+    }));
   }
 
   const text = await callGemini(
     [
       {
-        text: `Create 3 recipes using these ingredients: ${ingredients.join(', ')}. Dietary prefs: ${diets.join(', ') || 'none'}. Return JSON: {"recipes":[{"title":"","description":"","ingredients":[],"steps":[],"cookTimeMinutes":20,"difficulty":"Easy|Medium|Hard","cuisine":""}]}`,
+        text: `Create 3 gourmet ${mealType.toLowerCase()} recipes using these ingredients: ${ingredients.join(', ')}.
+Preferred cuisines: ${cuisines.join(', ') || 'any'}.
+Dietary prefs: ${diets.join(', ') || 'none'}.
+Target cook time around ${cookTimeMinutes} minutes.
+Extra notes: ${note || 'none'}.
+Return JSON: {"recipes":[{"title":"","description":"","ingredients":[],"steps":[],"cookTimeMinutes":20,"difficulty":"Easy|Medium|Hard","cuisine":""}]}`,
       },
     ],
-    'You are CookCan. Recipes should feel premium, warm, and achievable at home.'
+    'You are CookCan, a Michelin-inspired kitchen companion. Recipes should feel premium, warm, and achievable at home. Bias strongly toward the preferred cuisines and respect dietary constraints.'
   );
 
   try {

@@ -1,20 +1,21 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   type ViewStyle,
 } from 'react-native';
+import { BouncePressable, Pulsate } from '../theme/motion';
 import { colors } from '../theme/colors';
 
 type Props = {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'google';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  pulse?: boolean;
 };
 
 export function Button({
@@ -24,26 +25,29 @@ export function Button({
   loading,
   disabled,
   style,
+  pulse,
 }: Props) {
   const isDisabled = disabled || loading;
-  return (
-    <Pressable
+  const content = (
+    <BouncePressable
       onPress={onPress}
       disabled={isDisabled}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         variant === 'primary' && styles.primary,
         variant === 'secondary' && styles.secondary,
         variant === 'ghost' && styles.ghost,
-        pressed && !isDisabled && styles.pressed,
+        variant === 'google' && styles.google,
         isDisabled && styles.disabled,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? colors.white : colors.primary} />
+        <ActivityIndicator
+          color={
+            variant === 'primary' || variant === 'google' ? colors.white : colors.primary
+          }
+        />
       ) : (
         <Text
           style={[
@@ -51,38 +55,45 @@ export function Button({
             variant === 'primary' && styles.labelPrimary,
             variant === 'secondary' && styles.labelSecondary,
             variant === 'ghost' && styles.labelGhost,
+            variant === 'google' && styles.labelGoogle,
           ]}
         >
           {label}
         </Text>
       )}
-    </Pressable>
+    </BouncePressable>
   );
+
+  if (pulse && !isDisabled) {
+    return <Pulsate>{content}</Pulsate>;
+  }
+  return content;
 }
 
 const styles = StyleSheet.create({
   base: {
     minHeight: 52,
-    borderRadius: 16,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 22,
   },
   primary: {
     backgroundColor: colors.primary,
   },
   secondary: {
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.primary,
+    backgroundColor: colors.secondaryContainer,
   },
   ghost: {
     backgroundColor: 'transparent',
   },
-  pressed: { opacity: 0.88, transform: [{ scale: 0.985 }] },
+  google: {
+    backgroundColor: colors.charcoal,
+  },
   disabled: { opacity: 0.55 },
   label: { fontSize: 16, fontWeight: '700' },
   labelPrimary: { color: colors.white },
-  labelSecondary: { color: colors.primary },
+  labelSecondary: { color: colors.onSecondaryContainer },
   labelGhost: { color: colors.primaryDark },
+  labelGoogle: { color: colors.white },
 });

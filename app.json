@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FBF6EE"
+      "backgroundColor": "#FBF9F5"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,7 @@
     "android": {
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#FBF6EE",
+        "backgroundColor": "#FBF9F5",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -54,7 +54,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FBF6EE",
+          "backgroundColor": "#FBF9F5",
           "image": "./assets/splash.png",
           "imageWidth": 280
         }
@@ -73,7 +73,9 @@
           "photosPermission": "Allow CookCan to access your photos to identify ingredients."
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      "expo-image",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {

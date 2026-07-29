@@ -1,11 +1,18 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme/colors';
 
-/** Lightweight gradient-like backdrop without an extra native dep. */
 export function LinearishBackground({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.root}>
+      <LinearGradient
+        colors={[colors.primaryContainer, colors.cream, colors.secondaryContainer]}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <View style={styles.blobTop} />
       <View style={styles.blobBottom} />
       <View style={styles.content}>{children}</View>
@@ -22,8 +29,8 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: colors.gold,
-    opacity: 0.35,
+    backgroundColor: colors.primaryContainer,
+    opacity: 0.28,
   },
   blobBottom: {
     position: 'absolute',
@@ -32,8 +39,8 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: colors.primarySoft,
-    opacity: 0.28,
+    backgroundColor: colors.secondaryContainer,
+    opacity: 0.45,
   },
   content: { flex: 1 },
 });

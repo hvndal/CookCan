@@ -1,23 +1,45 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
+import { BouncePressable, ConfettiEffect, Pulsate } from '../theme/motion';
 import { useData } from '../context/DataContext';
-import { analyzeIngredientImage, generateRecipesFromPantry } from '../lib/gemini';
+import { analyzeIngredientImage } from '../lib/gemini';
 import { colors } from '../theme/colors';
 import type { RootStackParamList } from '../types';
 
 export default function ScanningScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { addPantryItems, saveRecipes, consumeScan, canScan, diets } = useData();
+  const { addPantryItems, consumeScan, canScan } = useData();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const [busy, setBusy] = useState(false);
+  const [confetti, setConfetti] = useState(false);
+  const laser = useSharedValue(0);
+
+  useEffect(() => {
+    laser.value = withRepeat(
+      withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, [laser]);
+
+  const laserStyle = useAnimatedStyle(() => ({
+    top: `${8 + laser.value * 70}%`,
+  }));
 
   async function processBase64(base64: string, mimeType = 'image/jpeg') {
     if (!canScan) {
@@ -41,12 +63,12 @@ export default function ScanningScreen() {
           confidence: 0.9,
         }))
       );
-      const recipes = await generateRecipesFromPantry(
-        ingredients.map((i) => i.name),
-        diets
-      );
-      await saveRecipes(recipes);
-      navigation.replace('RecipeResults', { recipes });
+      setConfetti(true);
+      setTimeout(() => {
+        navigation.replace('RecipeRefine', {
+          ingredients: ingredients.map((i) => i.name),
+        });
+      }, 700);
     } catch (e) {
       Alert.alert('Scan failed', e instanceof Error ? e.message : 'Try again');
     } finally {
@@ -76,9 +98,14 @@ export default function ScanningScreen() {
   if (!permission?.granted) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
-        <Text style={styles.title}>Camera access</Text>
-        <Text style={styles.sub}>CookCan needs the camera to scan ingredients.</Text>
-        <Button label="Allow camera" onPress={requestPermission} style={{ marginTop: 20 }} />
+        <View style={styles.iconCircle}>
+          <Text style={{ fontSize: 34 }}>📷</Text>
+        </View>
+        <Text style={styles.title}>Countertop AI Scanner</Text>
+        <Text style={styles.sub}>
+          CookCan needs the camera to scan ingredients on your kitchen countertop.
+        </Text>
+        <Button label="Allow camera" onPress={requestPermission} style={{ marginTop: 24 }} pulse />
         <Button
           label="Choose from gallery"
           variant="secondary"
@@ -93,14 +120,22 @@ export default function ScanningScreen() {
 
   return (
     <View style={styles.screen}>
+      <ConfettiEffect trigger={confetti} />
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+      <Animated.View style={[styles.laser, laserStyle]} />
       <View style={[styles.overlay, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
         <Text style={styles.overlayTitle}>Point at ingredients</Text>
-        <Text style={styles.overlaySub}>We’ll detect items and draft recipes</Text>
+        <Text style={styles.overlaySub}>
+          {busy ? 'AI is thinking… analyzing your countertop' : 'We’ll detect items, then refine cuisine & diet'}
+        </Text>
         <View style={styles.actions}>
           <Button label="Gallery" variant="secondary" onPress={pickImage} disabled={busy} />
-          <Button label={busy ? 'Analyzing…' : 'Capture'} onPress={takePhoto} loading={busy} />
-          <Button label="Cancel" variant="ghost" onPress={() => navigation.goBack()} disabled={busy} />
+          <Pulsate>
+            <BouncePressable onPress={takePhoto} disabled={busy} style={styles.shutter}>
+              <View style={styles.shutterInner} />
+            </BouncePressable>
+          </Pulsate>
+          <Button label="Close" variant="ghost" onPress={() => navigation.goBack()} disabled={busy} />
         </View>
       </View>
     </View>
@@ -108,15 +143,36 @@ export default function ScanningScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#000' },
+  screen: { flex: 1, backgroundColor: colors.black },
   center: {
     flex: 1,
     backgroundColor: colors.cream,
     paddingHorizontal: 24,
     justifyContent: 'center',
   },
-  title: { fontSize: 28, fontWeight: '800', color: colors.charcoal },
-  sub: { marginTop: 8, color: colors.muted, lineHeight: 22 },
+  iconCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+    alignSelf: 'center',
+  },
+  title: { fontSize: 28, fontWeight: '800', color: colors.charcoal, textAlign: 'center' },
+  sub: { marginTop: 10, color: colors.muted, lineHeight: 22, textAlign: 'center' },
+  laser: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    height: 2,
+    backgroundColor: colors.primaryContainer,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    zIndex: 2,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'space-between',
@@ -130,5 +186,26 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   overlaySub: { color: 'rgba(255,255,255,0.9)', marginTop: 6 },
-  actions: { gap: 10 },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  shutter: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  shutterInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.primary,
+  },
 });

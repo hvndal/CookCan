@@ -20,6 +20,7 @@ const keys = {
   onboarding: '@cookcan/onboarding_done',
   country: '@cookcan/country',
   diets: '@cookcan/diets',
+  cuisines: '@cookcan/cuisines',
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {
@@ -77,6 +78,9 @@ export const storage = {
 
   getDiets: () => readJson<string[]>(keys.diets, []),
   setDiets: (diets: string[]) => writeJson(keys.diets, diets),
+
+  getCuisines: () => readJson<string[]>(keys.cuisines, []),
+  setCuisines: (cuisines: string[]) => writeJson(keys.cuisines, cuisines),
 };
 
 export function monthKey(date = new Date()): string {

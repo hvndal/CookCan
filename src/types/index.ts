@@ -77,6 +77,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
   Scanning: undefined;
+  RecipeRefine: { ingredients: string[] };
   RecipeResults: { recipes: Recipe[] };
   RecipeDetail: { recipeId: string };
   MealPlanner: undefined;

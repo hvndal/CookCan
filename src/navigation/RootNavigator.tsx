@@ -7,6 +7,7 @@ import { MainTabs } from './MainTabs';
 import LoginScreen from '../screens/LoginScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
 import ScanningScreen from '../screens/ScanningScreen';
+import RecipeRefineScreen from '../screens/RecipeRefineScreen';
 import RecipeResultsScreen from '../screens/RecipeResultsScreen';
 import RecipeDetailScreen from '../screens/RecipeDetailScreen';
 import MealPlannerScreen from '../screens/MealPlannerScreen';
@@ -31,7 +32,13 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade_from_bottom' }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
+          contentStyle: { backgroundColor: colors.cream },
+        }}
+      >
         {!user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : !onboardingDone ? (
@@ -40,6 +47,7 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Scanning" component={ScanningScreen} />
+            <Stack.Screen name="RecipeRefine" component={RecipeRefineScreen} />
             <Stack.Screen name="RecipeResults" component={RecipeResultsScreen} />
             <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
             <Stack.Screen name="MealPlanner" component={MealPlannerScreen} />

@@ -34,6 +34,7 @@ type DataContextValue = {
   meals: MealPlanItem[];
   chat: ChatMessage[];
   diets: string[];
+  cuisines: string[];
   scansUsed: number;
   scansRemaining: number;
   canScan: boolean;
@@ -49,6 +50,7 @@ type DataContextValue = {
   appendChat: (role: 'user' | 'assistant', content: string) => Promise<void>;
   clearChat: () => Promise<void>;
   setDiets: (diets: string[]) => Promise<void>;
+  setCuisines: (cuisines: string[]) => Promise<void>;
   consumeScan: () => Promise<boolean>;
   seedStarterPantry: () => Promise<void>;
 };
@@ -65,17 +67,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [meals, setMeals] = useState<MealPlanItem[]>([]);
   const [chat, setChat] = useState<ChatMessage[]>([]);
   const [diets, setDietsState] = useState<string[]>([]);
+  const [cuisines, setCuisinesState] = useState<string[]>([]);
   const [scansUsed, setScansUsed] = useState(0);
 
   useEffect(() => {
     (async () => {
-      const [p, r, s, m, c, d, usage] = await Promise.all([
+      const [p, r, s, m, c, d, cu, usage] = await Promise.all([
         storage.getPantry(),
         storage.getRecipes(),
         storage.getShopping(),
         storage.getMeals(),
         storage.getChat(),
         storage.getDiets(),
+        storage.getCuisines(),
         storage.getUsage(),
       ]);
       setPantry(p);
@@ -84,6 +88,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setMeals(m);
       setChat(c);
       setDietsState(d);
+      setCuisinesState(cu);
       const key = monthKey();
       setScansUsed(usage?.monthKey === key ? usage.count : 0);
       setReady(true);
@@ -253,6 +258,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await storage.setDiets(next);
   }, []);
 
+  const setCuisines = useCallback(async (next: string[]) => {
+    setCuisinesState(next);
+    await storage.setCuisines(next);
+  }, []);
+
   const consumeScan = useCallback(async () => {
     if (isPro) return true;
     const key = monthKey();
@@ -284,6 +294,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       meals,
       chat,
       diets,
+      cuisines,
       scansUsed,
       scansRemaining,
       canScan,
@@ -299,6 +310,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       appendChat,
       clearChat,
       setDiets,
+      setCuisines,
       consumeScan,
       seedStarterPantry,
     }),
@@ -310,6 +322,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       meals,
       chat,
       diets,
+      cuisines,
       scansUsed,
       scansRemaining,
       canScan,
@@ -325,6 +338,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       appendChat,
       clearChat,
       setDiets,
+      setCuisines,
       consumeScan,
       seedStarterPantry,
     ]

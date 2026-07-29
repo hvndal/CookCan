@@ -29,7 +29,7 @@ export default function ProfileScreen() {
     restorePurchases,
     deactivateProMock,
   } = useBilling();
-  const { scansUsed, scansRemaining } = useData();
+  const { scansUsed, scansRemaining, diets, cuisines } = useData();
   const { languagePref, setLanguagePref, countryLabel, locale } = useSettings();
 
   const activePrice =
@@ -66,6 +66,18 @@ export default function ProfileScreen() {
               })}
         </Text>
       </View>
+
+      {(cuisines.length > 0 || diets.length > 0) && (
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Taste profile</Text>
+          {cuisines.length > 0 && (
+            <Text style={styles.cardMeta}>Cuisines · {cuisines.join(', ')}</Text>
+          )}
+          {diets.length > 0 && (
+            <Text style={styles.cardMeta}>Diet · {diets.join(', ')}</Text>
+          )}
+        </View>
+      )}
 
       <Text style={styles.section}>{t('language')}</Text>
       <View style={styles.langRow}>
