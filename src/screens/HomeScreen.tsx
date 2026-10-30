@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { Camera, ClipboardList, Crown, PenLine, Sparkles } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BouncePressable, Pulsate } from '../theme/motion';
+import { BouncePressable } from '../theme/motion';
 import { PillChip } from '../components/PillChip';
 import { useData } from '../context/DataContext';
 import { useBilling } from '../context/BillingContext';
@@ -231,15 +231,6 @@ export default function HomeScreen() {
           </Text>
         </View>
       </ScrollView>
-
-      <View style={[styles.fabWrap, { bottom: insets.bottom + 78 }]}>
-        <Pulsate>
-          <BouncePressable onPress={() => openScan('fridge')} style={styles.fab}>
-            <Camera color={colors.white} size={26} />
-            <Text style={styles.fabLabel}>SCAN</Text>
-          </BouncePressable>
-        </Pulsate>
-      </View>
     </View>
   );
 }
@@ -293,7 +284,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { fontWeight: '800', color: colors.white },
-  logo: { width: '100%', height: 210, marginTop: 4 },
+  logo: { width: '100%', height: 168, marginTop: 4 },
   sheet: {
     flexGrow: 1,
     backgroundColor: colors.cream,
@@ -301,7 +292,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 22,
-    paddingBottom: 108,
+    paddingBottom: 28,
     minHeight: 640,
   },
   hello: {
@@ -447,19 +438,4 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
   },
-  fabWrap: {
-    position: 'absolute',
-    right: 20,
-    alignItems: 'flex-end',
-  },
-  fab: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  fabLabel: { color: colors.white, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
 });
