@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../context/DataContext';
 import { Button } from '../components/Button';
 import { BouncePressable } from '../theme/motion';
-import { REMOTE } from '../theme/assets';
+import { photoForCuisine } from '../theme/photos';
 import { colors } from '../theme/colors';
 import type { RootStackParamList } from '../types';
 
@@ -82,7 +82,7 @@ export default function RecipeDetailScreen({ navigation, route }: Props) {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={styles.hero}>
           <Image
-            source={{ uri: REMOTE.continueCooking }}
+            source={photoForCuisine(recipe.cuisine)}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
           />

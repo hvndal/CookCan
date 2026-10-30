@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { Camera, ClipboardList, Crown, PenLine, Sparkles } from 'lucide-react-native';
+import { Crown, Sparkles } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BouncePressable } from '../theme/motion';
 import { PillChip } from '../components/PillChip';
@@ -12,6 +13,7 @@ import { useBilling } from '../context/BillingContext';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 import { logoMark } from '../theme/assets';
+import { photoForCuisine, photoForIndex, photos } from '../theme/photos';
 import { CUISINES, DIETARY_PREFS } from '../constants/preferences';
 import { FREE_SCANS_PER_MONTH } from '../constants/billing';
 import type { MainTabParamList } from '../types';
@@ -19,6 +21,8 @@ import { useRootNavigation } from '../navigation/useRootNavigation';
 
 const HOME_CUISINES = ['Mediterranean', 'Asian', 'Indian', 'Italian', 'Mexican', 'Japanese'] as const;
 const HOME_GOALS = ['Calorie Deficit', 'Vegetarian', 'Keto', 'Gluten-Free', 'Vegan', 'Halal'] as const;
+
+const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -65,45 +69,55 @@ export default function HomeScreen() {
   }
 
   const name = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Chef';
-  const inProgress = recipes.find((r) => (r.inProgressStep ?? 0) > 0) ?? recipes[0];
+  const featured = recipes.find((r) => (r.inProgressStep ?? 0) > 0) ?? recipes[0];
+  const featuredPhoto = featured ? photoForCuisine(featured.cuisine) : photos.salmon;
 
   return (
     <View style={styles.screen}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={[styles.hero, { paddingTop: insets.top + 8 }]}>
-          <View style={styles.heroBar}>
-            <Text style={styles.heroKicker}>SCAN · SELECT · SAVOR</Text>
-            <BouncePressable onPress={() => rootNav.navigate('Profile')} style={styles.avatarRing}>
-              <Text style={styles.avatarText}>{(name[0] ?? 'C').toUpperCase()}</Text>
-            </BouncePressable>
-          </View>
-          <Image source={logoMark} style={styles.logo} contentFit="contain" accessibilityLabel="CookCan" />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}>
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          <Image source={logoMark} style={styles.mark} contentFit="contain" accessibilityLabel="CookCan" />
+          <BouncePressable onPress={() => rootNav.navigate('Profile')} style={styles.avatarRing}>
+            <Text style={styles.avatarText}>{(name[0] ?? 'C').toUpperCase()}</Text>
+          </BouncePressable>
         </View>
 
-        <View style={styles.sheet}>
-          <Text style={styles.hello}>What is in the kitchen, {name}?</Text>
+        <BouncePressable onPress={featured ? () => rootNav.navigate('RecipeDetail', { recipeId: featured.id }) : curate} style={styles.cover}>
+          <Image source={featuredPhoto} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <LinearGradient
+            colors={['transparent', 'rgba(27,28,26,0.78)']}
+            style={StyleSheet.absoluteFill}
+          />
+          <Text style={styles.coverKicker}>
+            {featured ? 'TONIGHT FROM THIS KITCHEN' : 'TONIGHT, FROM WHAT YOU HAVE'}
+          </Text>
+          <Text style={styles.coverTitle}>
+            {featured ? featured.title : `What is in the kitchen, ${name}?`}
+          </Text>
+          <Text style={styles.coverMeta}>
+            {featured
+              ? `${featured.cookTimeMinutes} min · ${featured.cuisine ?? 'CookCan'}`
+              : 'Scan, select a cuisine, savor'}
+          </Text>
+        </BouncePressable>
+
+        <View style={styles.body}>
+          <Text style={styles.hello}>Scan. Select. Savor.</Text>
           <Text style={styles.helloSub}>
-            Gemini curates from a fridge photo, a written list, or the ingredients you type. Cuisine
-            and goals steer the plate.
+            Gemini cooks from a fridge photo, a written list, or what you type. Cuisine and goals
+            steer the plate.
           </Text>
 
-          <View style={styles.actions}>
-            <ActionRow
-              title="Scan the fridge"
-              detail="Shelves, counter, whatever is open"
-              icon={<Camera color={colors.primaryDark} size={22} />}
+          <View style={styles.captureRow}>
+            <CaptureTile
+              title="Fridge"
+              photo={photos.fridge}
               onPress={() => openScan('fridge')}
             />
-            <ActionRow
-              title="Scan a list"
-              detail="Handwritten note, receipt, or label"
-              icon={<ClipboardList color={colors.primaryDark} size={22} />}
-              onPress={() => openScan('list')}
-            />
-            <ActionRow
-              title="Type what you have"
-              detail="Add to the pantry, then curate"
-              icon={<PenLine color={colors.primaryDark} size={22} />}
+            <CaptureTile title="List" photo={photos.list} onPress={() => openScan('list')} />
+            <CaptureTile
+              title="Type"
+              photo={photos.tomato}
               onPress={() => tabNav.navigate('Pantry')}
             />
           </View>
@@ -121,20 +135,33 @@ export default function HomeScreen() {
           </BouncePressable>
 
           <Text style={styles.sectionCaps}>Cuisine</Text>
-          <Text style={styles.sectionHint}>Mediterranean, Asian, Indian, and the rest of the kitchen.</Text>
-          <View style={styles.chipRow}>
-            {HOME_CUISINES.map((cuisine) => (
-              <PillChip
-                key={cuisine}
-                label={cuisine}
-                selected={cuisines.includes(cuisine)}
-                onPress={() => toggle(cuisines, cuisine, setCuisines)}
-              />
-            ))}
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.storyRow}
+          >
+            {HOME_CUISINES.map((cuisine) => {
+              const on = cuisines.includes(cuisine);
+              return (
+                <BouncePressable
+                  key={cuisine}
+                  onPress={() => toggle(cuisines, cuisine, setCuisines)}
+                  style={styles.story}
+                >
+                  <View style={[styles.storyRing, on && styles.storyRingOn]}>
+                    <Image
+                      source={photoForCuisine(cuisine)}
+                      style={styles.storyPhoto}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <Text style={[styles.storyLabel, on && styles.storyLabelOn]}>{cuisine}</Text>
+                </BouncePressable>
+              );
+            })}
+          </ScrollView>
 
-          <Text style={[styles.sectionCaps, { marginTop: 22 }]}>Goals</Text>
-          <Text style={styles.sectionHint}>Optional. Gemini keeps these constraints on every recipe.</Text>
+          <Text style={[styles.sectionCaps, { marginTop: 8 }]}>Goals</Text>
           <View style={styles.chipRow}>
             {HOME_GOALS.map((goal) => (
               <PillChip
@@ -182,34 +209,22 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {inProgress && (
-            <BouncePressable
-              onPress={() => rootNav.navigate('RecipeDetail', { recipeId: inProgress.id })}
-              style={styles.continueCard}
-            >
-              <Text style={styles.inProgressText}>IN PROGRESS</Text>
-              <Text style={styles.continueTitle}>{inProgress.title}</Text>
-              <Text style={styles.continueMeta}>
-                {inProgress.cookTimeMinutes} min
-                {inProgress.cuisine ? ` · ${inProgress.cuisine}` : ''}
-              </Text>
-            </BouncePressable>
-          )}
-
           <Text style={[styles.sectionCaps, { marginTop: 28 }]}>From this kitchen</Text>
           {recipes.length === 0 ? (
             <Text style={styles.empty}>Scan or type what you have. Recipes stay tied to that list.</Text>
           ) : (
-            recipes.slice(0, 6).map((recipe) => (
+            recipes.slice(0, 6).map((recipe, index) => (
               <BouncePressable
                 key={recipe.id}
                 onPress={() => rootNav.navigate('RecipeDetail', { recipeId: recipe.id })}
-                style={styles.recipeRow}
+                style={styles.magazine}
               >
-                <View style={styles.recipeMark}>
-                  <Text style={styles.recipeMarkText}>{(recipe.cuisine ?? 'C').slice(0, 1)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
+                <Image
+                  source={photoForCuisine(recipe.cuisine) || photoForIndex(index)}
+                  style={styles.magazinePhoto}
+                  contentFit="cover"
+                />
+                <View style={styles.magazineBody}>
                   <Text style={styles.recipeTitle}>{recipe.title}</Text>
                   <Text style={styles.recipeMeta}>
                     {recipe.cookTimeMinutes} min · {recipe.difficulty}
@@ -226,8 +241,7 @@ export default function HomeScreen() {
               : `${scansRemaining === Infinity ? FREE_SCANS_PER_MONTH : scansRemaining} free scans left this month`}
           </Text>
           <Text style={styles.footnote}>
-            More cuisines and goals live in onboarding: {CUISINES.length} kitchens, {DIETARY_PREFS.length}{' '}
-            aims.
+            {CUISINES.length} kitchens · {DIETARY_PREFS.length} aims
           </Text>
         </View>
       </ScrollView>
@@ -235,46 +249,37 @@ export default function HomeScreen() {
   );
 }
 
-function ActionRow({
+function CaptureTile({
   title,
-  detail,
-  icon,
+  photo,
   onPress,
 }: {
   title: string;
-  detail: string;
-  icon: React.ReactNode;
+  photo: number;
   onPress: () => void;
 }) {
   return (
-    <BouncePressable onPress={onPress} style={styles.action}>
-      <View style={styles.actionIcon}>{icon}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.actionTitle}>{title}</Text>
-        <Text style={styles.actionDetail}>{detail}</Text>
-      </View>
-    </BouncePressable>
+    <View style={styles.tileWrap}>
+      <BouncePressable onPress={onPress} style={styles.tile}>
+        <Image source={photo} style={styles.tilePhoto} contentFit="cover" />
+        <LinearGradient colors={['transparent', 'rgba(27,28,26,0.72)']} style={StyleSheet.absoluteFill} />
+        <Text style={styles.tileTitle}>{title}</Text>
+      </BouncePressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.cream },
-  hero: {
+  topBar: {
     backgroundColor: colors.rose,
     paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  heroBar: {
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  heroKicker: {
-    color: colors.white,
-    letterSpacing: 2.4,
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  mark: { width: 148, height: 56 },
   avatarRing: {
     width: 40,
     height: 40,
@@ -284,46 +289,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { fontWeight: '800', color: colors.white },
-  logo: { width: '100%', height: 168, marginTop: 4 },
-  sheet: {
-    flexGrow: 1,
-    backgroundColor: colors.cream,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 28,
-    minHeight: 640,
+  cover: {
+    height: 280,
+    justifyContent: 'flex-end',
+    padding: 20,
+    overflow: 'hidden',
   },
-  hello: {
+  coverKicker: {
+    color: colors.rose,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.6,
+  },
+  coverTitle: {
+    color: colors.white,
     fontSize: 28,
     lineHeight: 34,
     fontWeight: '700',
+    marginTop: 8,
+    fontFamily: serif,
+  },
+  coverMeta: { color: 'rgba(255,255,255,0.86)', marginTop: 6, fontSize: 13 },
+  body: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 16 },
+  hello: {
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.charcoal,
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
+    fontFamily: serif,
   },
   helloSub: { color: colors.muted, marginTop: 8, fontSize: 15, lineHeight: 22 },
-  actions: { marginTop: 18, gap: 10 },
-  action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.white,
+  captureRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
+  tileWrap: { flex: 1 },
+  tile: {
+    height: 116,
     borderRadius: 18,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(225,129,148,0.35)',
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    padding: 10,
   },
-  actionIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: 'rgba(225,129,148,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionTitle: { fontSize: 16, fontWeight: '700', color: colors.charcoal },
-  actionDetail: { color: colors.muted, marginTop: 2, fontSize: 13 },
+  tilePhoto: { ...StyleSheet.absoluteFill },
+  tileTitle: { color: colors.white, fontWeight: '800', fontSize: 14 },
   curate: {
     marginTop: 14,
     backgroundColor: colors.primary,
@@ -336,14 +341,34 @@ const styles = StyleSheet.create({
   curateTitle: { color: colors.white, fontWeight: '800', fontSize: 16 },
   curateSub: { color: 'rgba(255,255,255,0.88)', marginTop: 2, fontSize: 13 },
   sectionCaps: {
-    marginTop: 26,
+    marginTop: 24,
+    marginBottom: 12,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.4,
     textTransform: 'uppercase',
     color: colors.primaryDark,
   },
-  sectionHint: { color: colors.muted, marginTop: 4, marginBottom: 10, fontSize: 13 },
+  storyRow: { gap: 14, paddingRight: 8, paddingBottom: 4 },
+  story: { width: 76, alignItems: 'center' },
+  storyRing: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    padding: 3,
+    borderWidth: 2,
+    borderColor: 'rgba(225,129,148,0.35)',
+  },
+  storyRingOn: { borderColor: colors.primary },
+  storyPhoto: { width: '100%', height: '100%', borderRadius: 31 },
+  storyLabel: {
+    marginTop: 6,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.muted,
+    textAlign: 'center',
+  },
+  storyLabelOn: { color: colors.primaryDark },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   proBanner: {
     marginTop: 18,
@@ -380,51 +405,21 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   miniChipText: { fontSize: 12, fontWeight: '600', color: colors.charcoal },
-  continueCard: {
-    marginTop: 16,
-    backgroundColor: colors.primaryDark,
-    borderRadius: 20,
-    padding: 18,
-  },
-  inProgressText: {
-    color: colors.rose,
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-  },
-  continueTitle: {
-    color: colors.white,
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: 8,
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
-  },
-  continueMeta: { color: 'rgba(255,255,255,0.8)', marginTop: 6 },
   empty: { color: colors.muted, lineHeight: 20 },
-  recipeRow: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
+  magazine: {
     backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 10,
-    marginBottom: 10,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 14,
   },
-  recipeMark: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: colors.secondaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recipeMarkText: {
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
-    fontSize: 22,
-    color: colors.secondary,
+  magazinePhoto: { width: '100%', height: 168 },
+  magazineBody: { padding: 14 },
+  recipeTitle: {
+    fontSize: 18,
     fontWeight: '700',
+    color: colors.charcoal,
+    fontFamily: serif,
   },
-  recipeTitle: { fontSize: 16, fontWeight: '700', color: colors.charcoal },
   recipeMeta: { color: colors.muted, marginTop: 4, fontSize: 13 },
   scanHint: {
     textAlign: 'center',

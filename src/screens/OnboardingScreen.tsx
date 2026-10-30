@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -10,6 +11,7 @@ import { CUISINES, DIETARY_PREFS } from '../constants/preferences';
 import { storage } from '../lib/storage';
 import { COUNTRY_LABELS, type CountryCode } from '../lib/locale';
 import { colors } from '../theme/colors';
+import { photoForCuisine, photos } from '../theme/photos';
 
 const COUNTRIES: CountryCode[] = ['US', 'CA', 'BR', 'MX', 'IN', 'DE', 'FR', 'AR', 'CO', 'CL', 'PE'];
 
@@ -47,6 +49,7 @@ export default function OnboardingScreen() {
     >
       {step === 0 && (
         <>
+          <Image source={photos.salmon} style={styles.welcomePhoto} contentFit="cover" />
           <Text style={styles.kicker}>CookCan</Text>
           <Text style={styles.title}>Welcome to your{'\n'}chef&apos;s atelier.</Text>
           <Text style={styles.sub}>
@@ -83,15 +86,26 @@ export default function OnboardingScreen() {
             Mediterranean, Asian, Indian, and the other kitchens you cook. Gemini biases every
             recipe toward these.
           </Text>
-          <View style={styles.chips}>
-            {CUISINES.map((c) => (
-              <PillChip
-                key={c}
-                label={c}
-                selected={selectedCuisines.includes(c)}
-                onPress={() => toggle(selectedCuisines, c, setSelectedCuisines)}
-              />
-            ))}
+          <View style={styles.cuisineGrid}>
+            {CUISINES.map((c) => {
+              const on = selectedCuisines.includes(c);
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => toggle(selectedCuisines, c, setSelectedCuisines)}
+                  style={[styles.cuisineTile, on && styles.cuisineTileOn]}
+                >
+                  <View style={styles.cuisinePhotoBox}>
+                    <Image
+                      source={photoForCuisine(c)}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <Text style={[styles.cuisineLabel, on && styles.cuisineLabelOn]}>{c}</Text>
+                </Pressable>
+              );
+            })}
           </View>
           <Button
             label="Continue"
@@ -146,4 +160,33 @@ const styles = StyleSheet.create({
   sub: { marginTop: 12, fontSize: 16, lineHeight: 24, color: colors.muted },
   hint: { marginTop: 16, color: colors.primaryDark, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 28 },
+  welcomePhoto: {
+    width: '100%',
+    height: 180,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  cuisineGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 24,
+  },
+  cuisineTile: {
+    width: '47%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cuisineTileOn: { borderColor: colors.primary },
+  cuisinePhotoBox: { height: 92, width: '100%', backgroundColor: colors.surfaceLow },
+  cuisineLabel: {
+    paddingVertical: 8,
+    textAlign: 'center',
+    fontWeight: '700',
+    color: colors.charcoal,
+  },
+  cuisineLabelOn: { color: colors.primaryDark },
 });

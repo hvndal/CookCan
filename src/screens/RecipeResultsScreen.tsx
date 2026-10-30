@@ -2,8 +2,10 @@ import React from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { Button } from '../components/Button';
 import { colors } from '../theme/colors';
+import { photoForCuisine, photoForIndex } from '../theme/photos';
 import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RecipeResults'>;
@@ -20,11 +22,16 @@ export default function RecipeResultsScreen({ navigation, route }: Props) {
         data={recipes}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 12 }}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <Pressable
             onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })}
             style={styles.card}
           >
+            <Image
+              source={photoForCuisine(item.cuisine) || photoForIndex(index)}
+              style={styles.cardImage}
+              contentFit="cover"
+            />
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardBody}>{item.description}</Text>
             <Text style={styles.meta}>
@@ -48,12 +55,14 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: 18,
-    padding: 16,
+    overflow: 'hidden',
+    paddingBottom: 16,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: colors.outlineVariant,
   },
-  cardTitle: { fontSize: 20, fontWeight: '800', color: colors.charcoal },
-  cardBody: { marginTop: 6, color: colors.muted, lineHeight: 20 },
-  meta: { marginTop: 10, color: colors.primaryDark, fontWeight: '700' },
+  cardImage: { width: '100%', height: 160, marginBottom: 12 },
+  cardTitle: { fontSize: 20, fontWeight: '800', color: colors.charcoal, paddingHorizontal: 16 },
+  cardBody: { marginTop: 6, color: colors.muted, lineHeight: 20, paddingHorizontal: 16 },
+  meta: { marginTop: 10, color: colors.primaryDark, fontWeight: '700', paddingHorizontal: 16 },
   footer: { padding: 20 },
 });

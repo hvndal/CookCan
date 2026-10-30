@@ -17,7 +17,9 @@ import { Button } from '../components/Button';
 import { BouncePressable, ConfettiEffect, Pulsate } from '../theme/motion';
 import { useData } from '../context/DataContext';
 import { analyzeIngredientImage } from '../lib/gemini';
+import { Image } from 'expo-image';
 import { colors } from '../theme/colors';
+import { photos } from '../theme/photos';
 import type { RootStackParamList } from '../types';
 
 export default function ScanningScreen() {
@@ -106,9 +108,11 @@ export default function ScanningScreen() {
   if (!permission?.granted) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
-        <View style={styles.iconCircle}>
-          <Text style={{ fontSize: 34 }}>📷</Text>
-        </View>
+        <Image
+          source={intent === 'list' ? photos.list : photos.fridge}
+          style={styles.preview}
+          contentFit="cover"
+        />
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.sub}>{hint}</Text>
         <Button label="Allow camera" onPress={requestPermission} style={{ marginTop: 24 }} pulse />
@@ -156,15 +160,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'center',
   },
-  iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-    alignSelf: 'center',
+  preview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 20,
+    marginBottom: 20,
   },
   title: { fontSize: 28, fontWeight: '800', color: colors.charcoal, textAlign: 'center' },
   sub: { marginTop: 10, color: colors.muted, lineHeight: 22, textAlign: 'center' },

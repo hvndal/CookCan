@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import Animated, {
   Easing,
@@ -25,6 +26,7 @@ import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { firebaseConfig, isFirebaseConfigured } from '../lib/firebase';
 import { logoMark } from '../theme/assets';
+import { photos } from '../theme/photos';
 import { colors } from '../theme/colors';
 
 type Mode = 'email' | 'phone';
@@ -124,6 +126,13 @@ export default function LoginScreen() {
         ref={recaptchaRef}
         firebaseConfig={firebaseConfig}
         attemptInvisibleVerification
+      />
+
+      <Image source={photos.salmon} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <LinearGradient
+        colors={['rgba(225,129,148,0.28)', 'rgba(27,28,26,0.55)', colors.rose]}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
       />
 
       <KeyboardAvoidingView
@@ -327,7 +336,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.rose },
   wrap: { flex: 1, paddingHorizontal: 24 },
   header: { alignItems: 'center', marginTop: 4, marginBottom: 12 },
-  heroLogo: { width: '100%', height: 210 },
+  heroLogo: { width: '100%', height: 168 },
   sub: {
     marginTop: 4,
     fontSize: 15,
