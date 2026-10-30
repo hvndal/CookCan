@@ -2,7 +2,9 @@ export const colors = {
   // OG CookCan Material palette
   primary: '#A43758',
   primaryDark: '#69042D',
-  primaryContainer: '#F07293',
+  // Sampled from the logo field (corners of the supplied mark).
+  rose: '#E18194',
+  primaryContainer: '#E18194',
   onPrimary: '#FFFFFF',
   secondary: '#53634D',
   secondaryContainer: '#D7E8CC',
@@ -12,6 +14,11 @@ export const colors = {
   background: '#FBF9F5',
   cream: '#FBF9F5',
   creamDark: '#F5F3EF',
+  // Soft wash, sampled from the blush / sage / lilac fields in the reference stories.
+  washRose: '#F6C6D2',
+  washCream: '#FBF6F1',
+  washSage: '#E4F0E2',
+  washLilac: '#E6E1F4',
   surface: '#FFFFFF',
   surfaceLow: '#F5F3EF',
   surfaceContainer: '#EFEEEA',

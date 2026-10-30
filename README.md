@@ -1,6 +1,8 @@
 # CookCan
 
-**Scan. Cook. Enjoy.** — Scan ingredients and generate personalized recipes with Gemini AI.
+Agents: read [AGENTS.md](AGENTS.md) before you change this app. It is the shared brief (flow, files, auth, Gemini, design rules).
+
+**Scan. Select. Savor.** — Scan the fridge, a written list, or type what you have. Gemini curates the meal.
 
 Expo SDK 57 / React Native app (`com.cookcan.app`) with Google Play Billing subscriptions.
 
@@ -62,12 +64,10 @@ npx expo start
 
 ```bash
 EXPO_PUBLIC_GEMINI_API_KEY=...
-EXPO_PUBLIC_SUPABASE_URL=https://oczdxcayqkwvriwolclh.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=...
 ```
 
-Without Supabase keys, use **Continue without account** (local session).  
-Without a Gemini key, scan/recipe/chat use rich offline demos so the app stays workable.
+Firebase web config has defaults in `src/lib/firebase.ts`. Auth is Google, an email magic link, or **Continue as guest**. There is no Supabase client. Without a Gemini key, scan and recipes use the offline demos in `src/lib/gemini.ts`.
 
 ### Google Play Billing (Android)
 
@@ -88,7 +88,7 @@ Dev builds without Play: open Paywall → **Unlock Pro (dev / no Play Billing)**
 
 ## App map
 
-- Auth → onboarding (country + diets) → bottom tabs: **Home · Pantry · AI Chef · Grocery**
+- Auth (Google, magic link, or guest) → onboarding (country, cuisines, goals) → bottom tabs: **Home · Pantry · AI Chef · Grocery**
 - Stack: Scan camera, recipe results/detail, meal planner, profile, paywall
 - Free scan quota enforced in `DataContext`; Pro unlocks AI Chef + meal planner + unlimited scans
 

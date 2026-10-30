@@ -77,8 +77,7 @@
       ],
       "expo-iap",
       "expo-image",
-      "@react-native-google-signin/google-signin",
-      "react-native-webview"
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "eas": {

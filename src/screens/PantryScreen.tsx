@@ -11,6 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useData } from '../context/DataContext';
 import { colors } from '../theme/colors';
+import { Image } from 'expo-image';
+import { photoForCategory } from '../theme/photos';
 import { Button } from '../components/Button';
 
 const CATEGORIES = ['All', 'Produce', 'Meat', 'Dairy', 'Pantry', 'Spices', 'Other'];
@@ -92,6 +94,7 @@ export default function PantryScreen() {
             }
             style={styles.row}
           >
+            <Image source={photoForCategory(item.category)} style={styles.thumb} contentFit="cover" />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.meta}>
@@ -151,10 +154,14 @@ const styles = StyleSheet.create({
     color: colors.charcoal,
   },
   row: {
-    paddingVertical: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.outline,
   },
+  thumb: { width: 56, height: 56, borderRadius: 14 },
   name: { fontSize: 17, fontWeight: '700', color: colors.charcoal },
   meta: { color: colors.muted, marginTop: 3 },
   empty: { color: colors.muted, marginTop: 24 },

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -10,6 +11,8 @@ import { CUISINES, DIETARY_PREFS } from '../constants/preferences';
 import { storage } from '../lib/storage';
 import { COUNTRY_LABELS, type CountryCode } from '../lib/locale';
 import { colors } from '../theme/colors';
+import { floatShadow, SoftWash } from '../theme/wash';
+import { photoForCuisine, photos } from '../theme/photos';
 
 const COUNTRIES: CountryCode[] = ['US', 'CA', 'BR', 'MX', 'IN', 'DE', 'FR', 'AR', 'CO', 'CL', 'PE'];
 
@@ -20,7 +23,7 @@ export default function OnboardingScreen() {
   const { country, setCountryOverride, countryLabel } = useSettings();
   const [step, setStep] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(country);
-  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(['Italian', 'Indian']);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(['Mediterranean', 'Indian']);
   const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
 
   function toggle(list: string[], value: string, setter: (v: string[]) => void) {
@@ -37,6 +40,7 @@ export default function OnboardingScreen() {
   }
 
   return (
+    <SoftWash>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={{
@@ -47,6 +51,9 @@ export default function OnboardingScreen() {
     >
       {step === 0 && (
         <>
+          <View style={styles.welcomeLift}>
+            <Image source={photos.salmon} style={styles.welcomePhoto} contentFit="cover" />
+          </View>
           <Text style={styles.kicker}>CookCan</Text>
           <Text style={styles.title}>Welcome to your{'\n'}chef&apos;s atelier.</Text>
           <Text style={styles.sub}>
@@ -80,18 +87,29 @@ export default function OnboardingScreen() {
         <>
           <Text style={styles.title}>Favorite cuisines</Text>
           <Text style={styles.sub}>
-            Pick the kitchens you love — Italian, Indian, Japanese, and more. We&apos;ll bias recipes
-            toward these.
+            Mediterranean, Asian, Indian, and the other kitchens you cook. Gemini biases every
+            recipe toward these.
           </Text>
-          <View style={styles.chips}>
-            {CUISINES.map((c) => (
-              <PillChip
-                key={c}
-                label={c}
-                selected={selectedCuisines.includes(c)}
-                onPress={() => toggle(selectedCuisines, c, setSelectedCuisines)}
-              />
-            ))}
+          <View style={styles.cuisineGrid}>
+            {CUISINES.map((c) => {
+              const on = selectedCuisines.includes(c);
+              return (
+                <Pressable
+                  key={c}
+                  onPress={() => toggle(selectedCuisines, c, setSelectedCuisines)}
+                  style={[styles.cuisineTile, on && styles.cuisineTileOn]}
+                >
+                  <View style={styles.cuisinePhotoBox}>
+                    <Image
+                      source={photoForCuisine(c)}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                    />
+                  </View>
+                  <Text style={[styles.cuisineLabel, on && styles.cuisineLabelOn]}>{c}</Text>
+                </Pressable>
+              );
+            })}
           </View>
           <Button
             label="Continue"
@@ -104,9 +122,9 @@ export default function OnboardingScreen() {
 
       {step === 3 && (
         <>
-          <Text style={styles.title}>Dietary preferences</Text>
+          <Text style={styles.title}>Goals</Text>
           <Text style={styles.sub}>
-            Optional — keto, calorie deficit, gluten-free, vegan, and more. Skip if you eat
+            Optional aims — calorie deficit, keto, gluten-free, vegan, and more. Skip if you eat
             everything.
           </Text>
           <View style={styles.chips}>
@@ -124,11 +142,12 @@ export default function OnboardingScreen() {
         </>
       )}
     </ScrollView>
+    </SoftWash>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   kicker: {
     color: colors.primary,
     fontStyle: 'italic',
@@ -146,4 +165,37 @@ const styles = StyleSheet.create({
   sub: { marginTop: 12, fontSize: 16, lineHeight: 24, color: colors.muted },
   hint: { marginTop: 16, color: colors.primaryDark, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 28 },
+  welcomeLift: {
+    borderRadius: 28,
+    marginBottom: 22,
+    boxShadow: floatShadow,
+  },
+  welcomePhoto: {
+    width: '100%',
+    height: 188,
+    borderRadius: 28,
+  },
+  cuisineGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 24,
+  },
+  cuisineTile: {
+    width: '47%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cuisineTileOn: { borderColor: colors.primary },
+  cuisinePhotoBox: { height: 92, width: '100%', backgroundColor: colors.surfaceLow },
+  cuisineLabel: {
+    paddingVertical: 8,
+    textAlign: 'center',
+    fontWeight: '700',
+    color: colors.charcoal,
+  },
+  cuisineLabelOn: { color: colors.primaryDark },
 });

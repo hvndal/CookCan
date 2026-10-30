@@ -23,7 +23,7 @@ import {
   MEAL_TYPES,
 } from '../constants/preferences';
 import { generateRecipesFromPantry } from '../lib/gemini';
-import { REMOTE } from '../theme/assets';
+import { photoForCuisine, photoForIndex } from '../theme/photos';
 import { colors } from '../theme/colors';
 import type { Recipe, RootStackParamList } from '../types';
 
@@ -146,14 +146,7 @@ export default function RecipeRefineScreen({ navigation, route }: Props) {
               style={styles.card}
             >
               <Image
-                source={{
-                  uri:
-                    index === 0
-                      ? REMOTE.recipeCrostini
-                      : index % 2 === 0
-                        ? REMOTE.recipeSalmon
-                        : REMOTE.recipeGarden,
-                }}
+                source={photoForCuisine(item.cuisine) || photoForIndex(index)}
                 style={styles.cardImage}
                 contentFit="cover"
               />

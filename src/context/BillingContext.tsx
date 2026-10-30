@@ -287,6 +287,9 @@ export function BillingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
 
+    // Play Billing native modules are not available in the web bundle.
+    if (Platform.OS === 'web') return;
+
     const purchaseSub = purchaseUpdatedListener(async (purchase: Purchase) => {
       try {
         const productId =
@@ -360,6 +363,13 @@ export function BillingProvider({ children }: { children: ReactNode }) {
   );
 
   const restorePurchases = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Store unavailable',
+        'Open a Play-enabled build to restore a subscription.'
+      );
+      return false;
+    }
     try {
       const actives = await getActiveSubscriptions([...PRO_PRODUCT_IDS]);
       const first = Array.isArray(actives) && actives.length > 0

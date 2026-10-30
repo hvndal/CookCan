@@ -40,7 +40,7 @@ export function BouncePressable({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPressIn={() => {
-        scale.value = withSpring(0.92, { damping: 12, stiffness: 220 });
+        scale.value = withSpring(0.96, { damping: 18, stiffness: 280 });
         void Haptics.selectionAsync();
       }}
       onPressOut={() => {

@@ -9,19 +9,29 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { BouncePressable, ConfettiEffect, Pulsate } from '../theme/motion';
 import { useData } from '../context/DataContext';
 import { analyzeIngredientImage } from '../lib/gemini';
+import { Image } from 'expo-image';
 import { colors } from '../theme/colors';
+import { photos } from '../theme/photos';
 import type { RootStackParamList } from '../types';
 
 export default function ScanningScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Scanning'>>();
+  const intent = route.params?.intent ?? 'fridge';
+  const title = intent === 'list' ? 'Scan an ingredient list' : 'Scan the fridge';
+  const hint =
+    intent === 'list'
+      ? 'A handwritten list, receipt, or package label. Gemini reads the words into the pantry.'
+      : 'Point at the shelves or the counter. Gemini reads what you can cook with.';
   const { addPantryItems, consumeScan, canScan } = useData();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -98,13 +108,13 @@ export default function ScanningScreen() {
   if (!permission?.granted) {
     return (
       <View style={[styles.center, { paddingTop: insets.top }]}>
-        <View style={styles.iconCircle}>
-          <Text style={{ fontSize: 34 }}>📷</Text>
-        </View>
-        <Text style={styles.title}>Countertop AI Scanner</Text>
-        <Text style={styles.sub}>
-          CookCan needs the camera to scan ingredients on your kitchen countertop.
-        </Text>
+        <Image
+          source={intent === 'list' ? photos.list : photos.fridge}
+          style={styles.preview}
+          contentFit="cover"
+        />
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.sub}>{hint}</Text>
         <Button label="Allow camera" onPress={requestPermission} style={{ marginTop: 24 }} pulse />
         <Button
           label="Choose from gallery"
@@ -124,9 +134,9 @@ export default function ScanningScreen() {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
       <Animated.View style={[styles.laser, laserStyle]} />
       <View style={[styles.overlay, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }]}>
-        <Text style={styles.overlayTitle}>Point at ingredients</Text>
+        <Text style={styles.overlayTitle}>{title}</Text>
         <Text style={styles.overlaySub}>
-          {busy ? 'AI is thinking… analyzing your countertop' : 'We’ll detect items, then refine cuisine & diet'}
+          {busy ? 'Gemini is reading the frame…' : hint}
         </Text>
         <View style={styles.actions}>
           <Button label="Gallery" variant="secondary" onPress={pickImage} disabled={busy} />
@@ -150,15 +160,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'center',
   },
-  iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-    alignSelf: 'center',
+  preview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 20,
+    marginBottom: 20,
   },
   title: { fontSize: 28, fontWeight: '800', color: colors.charcoal, textAlign: 'center' },
   sub: { marginTop: 10, color: colors.muted, lineHeight: 22, textAlign: 'center' },

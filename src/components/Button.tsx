@@ -44,9 +44,7 @@ export function Button({
     >
       {loading ? (
         <ActivityIndicator
-          color={
-            variant === 'primary' || variant === 'google' ? colors.white : colors.primary
-          }
+          color={variant === 'primary' ? colors.white : colors.primary}
         />
       ) : (
         <Text
@@ -88,12 +86,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   google: {
-    backgroundColor: colors.charcoal,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.outlineVariant,
   },
   disabled: { opacity: 0.55 },
   label: { fontSize: 16, fontWeight: '700' },
   labelPrimary: { color: colors.white },
   labelSecondary: { color: colors.onSecondaryContainer },
   labelGhost: { color: colors.primaryDark },
-  labelGoogle: { color: colors.white },
+  labelGoogle: { color: colors.charcoal },
 });
