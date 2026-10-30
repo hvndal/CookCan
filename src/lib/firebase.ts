@@ -56,8 +56,26 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
 
+function ensureDefaultApp(): FirebaseApp {
+  if (Platform.OS === 'web') {
+    // expo-firebase-recaptcha's web verifier reads the compat default app.
+    // The modular initializeApp() call does not register that namespace.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const firebaseCompat = require('firebase/compat/app').default as {
+      apps: unknown[];
+      initializeApp: (config: typeof firebaseConfig) => void;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('firebase/compat/auth');
+    if (!firebaseCompat.apps.length) {
+      firebaseCompat.initializeApp(firebaseConfig);
+    }
+  }
+  return getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+}
+
 if (isFirebaseConfigured) {
-  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  app = ensureDefaultApp();
   auth = initAuth(app);
   db = getFirestore(app);
 }
