@@ -1,9 +1,10 @@
 export const CUISINES = [
-  'Italian',
+  'Mediterranean',
+  'Asian',
   'Indian',
+  'Italian',
   'Japanese',
   'Mexican',
-  'Mediterranean',
   'French',
   'Chinese',
   'Thai',

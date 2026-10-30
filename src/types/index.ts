@@ -76,7 +76,7 @@ export type RootStackParamList = {
   Welcome: undefined;
   Onboarding: undefined;
   Main: undefined;
-  Scanning: undefined;
+  Scanning: { intent?: 'fridge' | 'list' } | undefined;
   RecipeRefine: { ingredients: string[] };
   RecipeResults: { recipes: Recipe[] };
   RecipeDetail: { recipeId: string };

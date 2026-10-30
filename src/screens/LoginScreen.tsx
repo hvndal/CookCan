@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 import Animated, {
   Easing,
@@ -26,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
 import { firebaseConfig, isFirebaseConfigured } from '../lib/firebase';
-import { REMOTE } from '../theme/assets';
+import { logoMark } from '../theme/assets';
 import { colors } from '../theme/colors';
 
 type Mode = 'email' | 'phone';
@@ -128,14 +126,6 @@ export default function LoginScreen() {
         attemptInvisibleVerification
       />
 
-      <ImageBackground source={{ uri: REMOTE.kitchenBg }} style={StyleSheet.absoluteFill} resizeMode="cover">
-        <LinearGradient
-          colors={['transparent', 'rgba(251,249,245,0.45)', colors.cream]}
-          locations={[0.2, 0.55, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-      </ImageBackground>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={[styles.wrap, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 12 }]}
@@ -146,13 +136,10 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.brandPill}>
-              <Text style={styles.brandPillText}>CookCan</Text>
-            </View>
-            <Text style={styles.headline}>Crafting flavor{'\n'}with precision.</Text>
+            <Image source={logoMark} style={styles.heroLogo} contentFit="contain" accessibilityLabel="CookCan" />
             <Text style={styles.sub}>
-              Step into your private chef&apos;s atelier. Scan your ingredients and let AI design your
-              next masterpiece.
+              Scan the fridge, scan a list, or type what you have. Gemini curates the meal. Cuisine and
+              goals set the direction.
             </Text>
           </View>
 
@@ -328,10 +315,8 @@ export default function LoginScreen() {
       {showSplash && (
         <Animated.View style={styles.splash}>
           <Animated.View style={splashLogoStyle}>
-            <Image source={{ uri: REMOTE.logo }} style={styles.splashLogo} contentFit="contain" />
+            <Image source={logoMark} style={styles.splashLogo} contentFit="contain" accessibilityLabel="CookCan" />
           </Animated.View>
-          <Text style={styles.splashBrand}>CookCan</Text>
-          <Text style={styles.splashTag}>SCAN • SELECT • SAVOR</Text>
         </Animated.View>
       )}
     </View>
@@ -339,35 +324,15 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.cream },
+  root: { flex: 1, backgroundColor: colors.rose },
   wrap: { flex: 1, paddingHorizontal: 24 },
-  header: { alignItems: 'center', marginTop: 8, marginBottom: 16 },
-  brandPill: {
-    backgroundColor: 'rgba(240,114,147,0.22)',
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginBottom: 14,
-  },
-  brandPillText: {
-    color: colors.primary,
-    fontStyle: 'italic',
-    fontWeight: '800',
-    fontSize: 18,
-  },
-  headline: {
-    fontSize: 34,
-    lineHeight: 42,
-    fontWeight: '700',
-    color: colors.charcoal,
-    textAlign: 'center',
-    fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
-  },
+  header: { alignItems: 'center', marginTop: 4, marginBottom: 12 },
+  heroLogo: { width: '100%', height: 210 },
   sub: {
-    marginTop: 10,
+    marginTop: 4,
     fontSize: 15,
     lineHeight: 22,
-    color: colors.muted,
+    color: colors.white,
     textAlign: 'center',
     paddingHorizontal: 8,
   },
@@ -435,23 +400,10 @@ const styles = StyleSheet.create({
   },
   splash: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: colors.rose,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 20,
   },
-  splashLogo: { width: 96, height: 96, marginBottom: 18 },
-  splashBrand: {
-    color: colors.white,
-    fontSize: 44,
-    fontWeight: '800',
-    fontStyle: 'italic',
-  },
-  splashTag: {
-    marginTop: 10,
-    color: 'rgba(255,255,255,0.92)',
-    letterSpacing: 4,
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  splashLogo: { width: 360, height: 280 },
 });

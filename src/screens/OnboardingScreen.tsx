@@ -20,7 +20,7 @@ export default function OnboardingScreen() {
   const { country, setCountryOverride, countryLabel } = useSettings();
   const [step, setStep] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(country);
-  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(['Italian', 'Indian']);
+  const [selectedCuisines, setSelectedCuisines] = useState<string[]>(['Mediterranean', 'Indian']);
   const [selectedDiets, setSelectedDiets] = useState<string[]>([]);
 
   function toggle(list: string[], value: string, setter: (v: string[]) => void) {
@@ -80,8 +80,8 @@ export default function OnboardingScreen() {
         <>
           <Text style={styles.title}>Favorite cuisines</Text>
           <Text style={styles.sub}>
-            Pick the kitchens you love — Italian, Indian, Japanese, and more. We&apos;ll bias recipes
-            toward these.
+            Mediterranean, Asian, Indian, and the other kitchens you cook. Gemini biases every
+            recipe toward these.
           </Text>
           <View style={styles.chips}>
             {CUISINES.map((c) => (
@@ -104,9 +104,9 @@ export default function OnboardingScreen() {
 
       {step === 3 && (
         <>
-          <Text style={styles.title}>Dietary preferences</Text>
+          <Text style={styles.title}>Goals</Text>
           <Text style={styles.sub}>
-            Optional — keto, calorie deficit, gluten-free, vegan, and more. Skip if you eat
+            Optional aims — calorie deficit, keto, gluten-free, vegan, and more. Skip if you eat
             everything.
           </Text>
           <View style={styles.chips}>

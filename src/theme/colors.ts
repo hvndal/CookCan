@@ -2,7 +2,9 @@ export const colors = {
   // OG CookCan Material palette
   primary: '#A43758',
   primaryDark: '#69042D',
-  primaryContainer: '#F07293',
+  // Sampled from the logo field (corners of the supplied mark).
+  rose: '#E18194',
+  primaryContainer: '#E18194',
   onPrimary: '#FFFFFF',
   secondary: '#53634D',
   secondaryContainer: '#D7E8CC',
