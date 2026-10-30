@@ -11,16 +11,21 @@ import React, {
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
+  isSignInWithEmailLink,
   onAuthStateChanged,
   PhoneAuthProvider,
+  sendSignInLinkToEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithEmailLink,
   signInWithPhoneNumber,
+  signInWithPopup,
   signOut as firebaseSignOut,
   type ConfirmationResult,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 import { auth, isFirebaseConfigured, isAdminEmail } from '../lib/firebase';
 import { ensureAdminRecord, upsertUserProfile } from '../lib/entitlements';
@@ -45,6 +50,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  sendMagicLink: (email: string) => Promise<void>;
   sendPhoneCode: (
     phoneE164: string,
     verifier: { verify: () => Promise<string>; type?: string }
@@ -58,6 +64,14 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const LOCAL_USER_KEY = '@cookcan/local_user';
+const MAGIC_EMAIL_KEY = '@cookcan/magic_email';
+
+function magicLinkContinueUrl(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return Linking.createURL('/');
+}
 
 function toAppUser(u: FirebaseUser): AppUser {
   return {
@@ -140,11 +154,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async () => {
-    if (Platform.OS === 'web') {
-      throw new Error('Google Sign-In works in the Android/iOS app build. Use email or phone on web.');
-    }
     if (!auth || !isFirebaseConfigured) {
-      throw new Error('Configure Firebase to use Google Sign-In, or continue with email.');
+      throw new Error('Configure Firebase to use Google, or continue as guest.');
+    }
+    if (Platform.OS === 'web') {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await signInWithPopup(auth, provider);
+      return;
     }
     try {
       const idToken = await googleNativeSignIn();
@@ -154,11 +171,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const msg = e instanceof Error ? e.message : 'Google Sign-In failed';
       if (/EXPO_PUBLIC_GOOGLE|native module|RNGoogleSignin|not linked/i.test(msg)) {
         throw new Error(
-          'Google Sign-In needs a native build with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Use email or phone for now.'
+          'Google Sign-In needs a native Android build with EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.'
         );
       }
       throw e instanceof Error ? e : new Error(msg);
     }
+  }, []);
+
+  const sendMagicLink = useCallback(async (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      throw new Error('Enter a valid email');
+    }
+    if (!auth || !isFirebaseConfigured) {
+      throw new Error('Firebase is needed for a magic link. Continue as guest for now.');
+    }
+    try {
+      await sendSignInLinkToEmail(auth, trimmed, {
+        url: magicLinkContinueUrl(),
+        handleCodeInApp: true,
+        iOS: { bundleId: 'com.cookcan.app' },
+        android: {
+          packageName: 'com.cookcan.app',
+          installApp: true,
+          minimumVersion: '1',
+        },
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/unauthorized-continue-uri|unauthorized-domain|auth\/unauthorized/i.test(msg)) {
+        throw new Error(
+          'This preview host is not on Firebase yet. Continue as guest, or open a signed Android build.'
+        );
+      }
+      if (/operation-not-allowed|admin-restricted/i.test(msg)) {
+        throw new Error('Email link sign-in is not enabled on this Firebase project yet.');
+      }
+      throw e instanceof Error ? e : new Error(msg);
+    }
+    await AsyncStorage.setItem(MAGIC_EMAIL_KEY, trimmed);
   }, []);
 
   const sendPhoneCode = useCallback(
@@ -237,6 +288,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    async function completeMagicLink(url: string | null) {
+      if (!url || !auth) return;
+      if (!isSignInWithEmailLink(auth, url)) return;
+      const stored = await AsyncStorage.getItem(MAGIC_EMAIL_KEY);
+      if (!stored) return;
+      await signInWithEmailLink(auth, stored, url);
+      await AsyncStorage.removeItem(MAGIC_EMAIL_KEY);
+    }
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      void completeMagicLink(window.location.href);
+    }
+    const linkSub = Linking.addEventListener('url', (event) => {
+      void completeMagicLink(event.url);
+    });
+    void Linking.getInitialURL().then((url) => completeMagicLink(url));
+
+    return () => linkSub.remove();
+  }, []);
+
+  useEffect(() => {
     let unsub: (() => void) | undefined;
 
     (async () => {
@@ -309,6 +381,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signInWithGoogle,
+      sendMagicLink,
       sendPhoneCode,
       confirmPhoneCode,
       resetPhoneAuth,
@@ -327,6 +400,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signInWithGoogle,
+      sendMagicLink,
       sendPhoneCode,
       confirmPhoneCode,
       resetPhoneAuth,

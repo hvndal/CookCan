@@ -1,7 +1,7 @@
 # Firebase setup for CookCan
 
-CookCan uses **Firebase Auth** (email/password) and **Firestore** for:
-- Sign-in / sign-up
+CookCan uses **Firebase Auth** (Google + email magic link) and **Firestore** for:
+- Sign-in
 - Cloud sync of pantry + saved recipes
 - **Admin Pro grants** — give users complimentary Pro without Play billing
 
@@ -14,13 +14,13 @@ CookCan uses **Firebase Auth** (email/password) and **Firestore** for:
 ## 2. Enable services
 
 ### Authentication
-- **Sign-in method** → enable **Email/Password**
 - **Sign-in method** → enable **Google**
   - Copy the **Web client ID** into `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
   - Add your Android SHA-1 from `eas credentials` / Play Console to the Firebase Android app
-- **Sign-in method** → enable **Phone**
-  - Add test numbers for QA (optional)
-  - App uses reCAPTCHA (`expo-firebase-recaptcha`) before sending SMS
+- **Sign-in method** → enable **Email link (passwordless)**
+  - Authorized domains must include the continue URL host (`cookcan.app`, plus `localhost` only for web previews)
+  - The app stores the email, then completes with `signInWithEmailLink` when the link opens
+- Do **not** enable Email/Password or Phone for the kitchen door. Guest is a local session only.
 
 ### Android app
 - Package: `com.cookcan.app`

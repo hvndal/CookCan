@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,7 +11,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+import Svg, { Path } from 'react-native-svg';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -24,34 +23,44 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/Button';
 import { useAuth } from '../context/AuthContext';
-import { firebaseConfig, isFirebaseConfigured } from '../lib/firebase';
 import { logoMark } from '../theme/assets';
 import { photos } from '../theme/photos';
+import { BouncePressable } from '../theme/motion';
 import { colors } from '../theme/colors';
 
-type Mode = 'email' | 'phone';
+const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
+
+function GoogleMark() {
+  return (
+    <Svg width={18} height={18} viewBox="0 0 18 18">
+      <Path
+        fill="#4285F4"
+        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+      />
+      <Path
+        fill="#34A853"
+        d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"
+      />
+      <Path
+        fill="#FBBC05"
+        d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"
+      />
+      <Path
+        fill="#EA4335"
+        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"
+      />
+    </Svg>
+  );
+}
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const {
-    signIn,
-    signUp,
-    signInLocal,
-    signInWithGoogle,
-    sendPhoneCode,
-    confirmPhoneCode,
-    phoneCodeSent,
-    resetPhoneAuth,
-  } = useAuth();
-  const recaptchaRef = useRef<FirebaseRecaptchaVerifierModal>(null);
+  const { signInLocal, signInWithGoogle, sendMagicLink } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
-  const [mode, setMode] = useState<Mode>('email');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const pulse = useSharedValue(1);
 
   useEffect(() => {
@@ -63,7 +72,7 @@ export default function LoginScreen() {
       -1,
       false
     );
-    const t = setTimeout(() => setShowSplash(false), 2200);
+    const t = setTimeout(() => setShowSplash(false), 1800);
     return () => clearTimeout(t);
   }, [pulse]);
 
@@ -71,50 +80,28 @@ export default function LoginScreen() {
     transform: [{ scale: pulse.value }],
   }));
 
-  async function runEmail() {
-    setLoading(true);
-    try {
-      if (isSignUp) await signUp(email, password);
-      else await signIn(email, password);
-    } catch (e) {
-      Alert.alert('CookCan', e instanceof Error ? e.message : 'Failed');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function runGoogle() {
     setLoading(true);
+    setError(null);
     try {
       await signInWithGoogle();
     } catch (e) {
-      Alert.alert('Google Sign-In', e instanceof Error ? e.message : 'Failed');
+      const msg = e instanceof Error ? e.message : 'Could not sign in';
+      setError(msg);
+      Alert.alert('Google', msg);
     } finally {
       setLoading(false);
     }
   }
 
-  async function runSendPhone() {
+  async function runMagicLink() {
     setLoading(true);
+    setError(null);
     try {
-      if (!recaptchaRef.current) {
-        throw new Error('reCAPTCHA not ready — try again in a second');
-      }
-      await sendPhoneCode(phone, recaptchaRef.current);
-      Alert.alert('Code sent', 'Check your SMS for the 6-digit code.');
+      await sendMagicLink(email);
+      setLinkSentTo(email.trim().toLowerCase());
     } catch (e) {
-      Alert.alert('Phone login', e instanceof Error ? e.message : 'Failed');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function runConfirmPhone() {
-    setLoading(true);
-    try {
-      await confirmPhoneCode(otp);
-    } catch (e) {
-      Alert.alert('Phone login', e instanceof Error ? e.message : 'Failed');
+      setError(e instanceof Error ? e.message : 'Could not send link');
     } finally {
       setLoading(false);
     }
@@ -122,203 +109,100 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.root}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaRef}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification
-      />
-
       <Image source={photos.salmon} style={StyleSheet.absoluteFill} contentFit="cover" />
       <LinearGradient
-        colors={['rgba(225,129,148,0.28)', 'rgba(27,28,26,0.55)', colors.rose]}
-        locations={[0, 0.45, 1]}
+        colors={['rgba(225,129,148,0.22)', 'rgba(27,28,26,0.42)', colors.rose]}
+        locations={[0, 0.48, 1]}
         style={StyleSheet.absoluteFill}
       />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={[styles.wrap, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 12 }]}
+        style={[
+          styles.wrap,
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 },
+        ]}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Image source={logoMark} style={styles.heroLogo} contentFit="contain" accessibilityLabel="CookCan" />
-            <Text style={styles.sub}>
-              Scan the fridge, scan a list, or type what you have. Gemini curates the meal. Cuisine and
-              goals set the direction.
-            </Text>
-          </View>
+        <View style={styles.header}>
+          <Image source={logoMark} style={styles.heroLogo} contentFit="contain" accessibilityLabel="CookCan" />
+          <Text style={styles.kicker}>Scan. Select. Savor.</Text>
+          <Text style={styles.sub}>Gemini curates from what you already have.</Text>
+        </View>
 
-          <View style={styles.card}>
-            <View
-              style={[
-                styles.badge,
-                {
-                  backgroundColor: isFirebaseConfigured
-                    ? colors.successSoft
-                    : colors.warningSoft,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.dot,
-                  { backgroundColor: isFirebaseConfigured ? '#4CAF50' : '#FF9800' },
-                ]}
-              />
-              <Text
-                style={{
-                  fontWeight: '700',
-                  fontSize: 11,
-                  color: isFirebaseConfigured ? colors.success : colors.warning,
-                }}
-              >
-                {isFirebaseConfigured ? 'Firebase Live Sync' : 'Local / Sandbox Mode'}
+        <View style={styles.card}>
+          {linkSentTo ? (
+            <>
+              <Text style={styles.cardTitle}>Check your inbox</Text>
+              <Text style={styles.cardSub}>
+                We sent a sign-in link to {linkSentTo}. Open it on this phone.
               </Text>
-            </View>
-
-            <Text style={styles.cardTitle}>
-              {mode === 'phone'
-                ? phoneCodeSent
-                  ? 'Enter SMS code'
-                  : 'Sign in with Phone'
-                : isSignUp
-                  ? 'Create Account'
-                  : 'Welcome Back'}
-            </Text>
-            <Text style={styles.cardSub}>
-              {mode === 'phone'
-                ? 'We will text you a one-time code'
-                : isSignUp
-                  ? 'Sign up to backup your custom recipes'
-                  : 'Sign in to restore your culinary profile'}
-            </Text>
-
-            <Button
-              label="Continue with Google"
-              variant="google"
-              onPress={runGoogle}
-              loading={loading}
-              style={{ marginTop: 14 }}
-            />
-
-            <View style={styles.modeRow}>
-              <Pressable
+              <Button
+                label="Use a different email"
+                variant="ghost"
                 onPress={() => {
-                  setMode('email');
-                  resetPhoneAuth();
+                  setLinkSentTo(null);
+                  setEmail('');
                 }}
-                style={[styles.modeChip, mode === 'email' && styles.modeChipOn]}
+                style={{ marginTop: 8 }}
+              />
+            </>
+          ) : (
+            <>
+              <BouncePressable
+                onPress={runGoogle}
+                disabled={loading}
+                accessibilityLabel="Continue with Google"
+                style={styles.googleBtn}
               >
-                <Text style={[styles.modeText, mode === 'email' && styles.modeTextOn]}>Email</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setMode('phone')}
-                style={[styles.modeChip, mode === 'phone' && styles.modeChipOn]}
-              >
-                <Text style={[styles.modeText, mode === 'phone' && styles.modeTextOn]}>Phone</Text>
-              </Pressable>
-            </View>
-
-            {mode === 'email' ? (
-              <>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email address"
-                  placeholderTextColor={colors.tabInactive}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  autoComplete="email"
-                />
-                <TextInput
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Password (min 6)"
-                  placeholderTextColor={colors.tabInactive}
-                  secureTextEntry
-                  textContentType="password"
-                  autoComplete={isSignUp ? 'new-password' : 'password'}
-                />
-                <Button
-                  label={isSignUp ? 'Create Account' : 'Sign In'}
-                  onPress={runEmail}
-                  loading={loading}
-                />
-                <Button
-                  label={isSignUp ? 'Have an account? Sign In' : 'New to CookCan? Create Account'}
-                  variant="ghost"
-                  onPress={() => setIsSignUp((v) => !v)}
-                  style={{ marginTop: 4 }}
-                />
-              </>
-            ) : (
-              <>
-                {!phoneCodeSent ? (
-                  <>
-                    <TextInput
-                      style={styles.input}
-                      value={phone}
-                      onChangeText={setPhone}
-                      placeholder="Phone +1 415 555 2671"
-                      placeholderTextColor={colors.tabInactive}
-                      keyboardType="phone-pad"
-                      textContentType="telephoneNumber"
-                      autoComplete="tel"
-                    />
-                    <Button
-                      label="Send SMS code"
-                      onPress={runSendPhone}
-                      loading={loading}
-                      pulse
-                    />
-                  </>
+                {loading ? (
+                  <ActivityIndicator color={colors.charcoal} />
                 ) : (
-                  <>
-                    <TextInput
-                      style={styles.input}
-                      value={otp}
-                      onChangeText={setOtp}
-                      placeholder="6-digit code"
-                      placeholderTextColor={colors.tabInactive}
-                      keyboardType="number-pad"
-                      textContentType="oneTimeCode"
-                      maxLength={6}
-                    />
-                    <Button
-                      label="Verify & enter kitchen"
-                      onPress={runConfirmPhone}
-                      loading={loading}
-                      pulse
-                    />
-                    <Button
-                      label="Use a different number"
-                      variant="ghost"
-                      onPress={() => {
-                        resetPhoneAuth();
-                        setOtp('');
-                      }}
-                      style={{ marginTop: 4 }}
-                    />
-                  </>
+                  <View style={styles.googleRow}>
+                    <GoogleMark />
+                    <Text style={styles.googleLabel}>Continue with Google</Text>
+                  </View>
                 )}
-              </>
-            )}
+              </BouncePressable>
 
-            <Button
-              label="Explore as Guest"
-              variant="secondary"
-              onPress={() => signInLocal(email || phone || 'cook@cookcan.app')}
-              style={{ marginTop: 8 }}
-            />
-          </View>
-        </ScrollView>
+              <View style={styles.orRow}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>or</Text>
+                <View style={styles.orLine} />
+              </View>
+
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email address"
+                placeholderTextColor={colors.tabInactive}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
+                returnKeyType="send"
+                onSubmitEditing={() => {
+                  if (email.trim()) void runMagicLink();
+                }}
+              />
+              <Button
+                label="Email me a link"
+                onPress={runMagicLink}
+                loading={loading}
+                disabled={!email.trim()}
+              />
+            </>
+          )}
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <Button
+            label="Continue as guest"
+            variant="ghost"
+            onPress={() => signInLocal(email || 'cook@cookcan.app')}
+            style={{ marginTop: 4 }}
+          />
+        </View>
       </KeyboardAvoidingView>
 
       {showSplash && (
@@ -334,36 +218,41 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.rose },
-  wrap: { flex: 1, paddingHorizontal: 24 },
-  header: { alignItems: 'center', marginTop: 4, marginBottom: 12 },
-  heroLogo: { width: '100%', height: 168 },
-  sub: {
-    marginTop: 4,
-    fontSize: 15,
-    lineHeight: 22,
+  wrap: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 412,
+    alignSelf: 'center',
+    paddingHorizontal: 22,
+    justifyContent: 'space-between',
+  },
+  header: { alignItems: 'center', marginTop: 8 },
+  heroLogo: { width: '88%', height: 128 },
+  kicker: {
+    marginTop: 2,
+    fontFamily: serif,
+    fontSize: 22,
     color: colors.white,
     textAlign: 'center',
-    paddingHorizontal: 8,
+  },
+  sub: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.white,
+    textAlign: 'center',
+    paddingHorizontal: 12,
+    opacity: 0.92,
   },
   card: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 28,
-    padding: 20,
+    backgroundColor: 'rgba(251,249,245,0.94)',
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.65)',
-    marginBottom: 12,
+    borderColor: 'rgba(255,255,255,0.7)',
   },
-  badge: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    marginBottom: 10,
-  },
-  dot: { width: 8, height: 8, borderRadius: 4 },
   cardTitle: {
     fontSize: 22,
     fontWeight: '800',
@@ -371,33 +260,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardSub: {
-    marginTop: 4,
+    marginTop: 8,
+    marginBottom: 4,
     color: colors.muted,
     textAlign: 'center',
-    fontSize: 13,
+    fontSize: 14,
+    lineHeight: 20,
   },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginVertical: 14,
-  },
-  modeChip: {
-    flex: 1,
-    paddingVertical: 10,
+  googleBtn: {
+    minHeight: 52,
     borderRadius: 999,
-    backgroundColor: colors.surfaceLow,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
+    paddingHorizontal: 18,
+  },
+  googleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  googleLabel: { fontSize: 16, fontWeight: '700', color: colors.charcoal },
+  orRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
+    marginVertical: 14,
   },
-  modeChipOn: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  orLine: { flex: 1, height: 1, backgroundColor: colors.outlineVariant },
+  orText: { fontSize: 12, fontWeight: '700', color: colors.tabInactive, letterSpacing: 0.4 },
+  error: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.error,
+    textAlign: 'center',
   },
-  modeText: { fontWeight: '700', color: colors.charcoal },
-  modeTextOn: { color: colors.white },
   input: {
-    backgroundColor: colors.surfaceLow,
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.outlineVariant,
     borderRadius: 999,
@@ -414,5 +312,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 20,
   },
-  splashLogo: { width: 360, height: 280 },
+  splashLogo: { width: 300, height: 240 },
 });

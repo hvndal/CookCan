@@ -45,6 +45,9 @@ Rose is 10% of the screen (header, chips on, curate). Cream is 60%. Charcoal typ
 ## Type
 Serif for dish names and the cover title. Sans for chips, tabs, and SCAN · SELECT · SAVOR. Four sizes: 11, 13, 16, 28.
 
+## Auth
+The kitchen door is a phone, not a form. Google is the one-tap path. A magic link is the email path. There is no password and no phone OTP — those belong on a laptop, not a fridge-width screen. Guest stays a quiet text link for a local cook.
+
 ## Layout
 8-point grid. Cards 16–20 radius. Capture tiles sit in the thumb zone. Content bleeds (photos); controls stay inset 20.
 
