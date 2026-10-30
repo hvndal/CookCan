@@ -12,6 +12,7 @@ import { useData } from '../context/DataContext';
 import { useBilling } from '../context/BillingContext';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
+import { floatShadow, SoftWash } from '../theme/wash';
 import { logoMark } from '../theme/assets';
 import { photoForCuisine, photoForIndex, photos } from '../theme/photos';
 import { CUISINES, DIETARY_PREFS } from '../constants/preferences';
@@ -74,7 +75,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}>
+      <SoftWash style={StyleSheet.absoluteFill} />
+      <ScrollView
+        style={{ flex: 1, backgroundColor: 'transparent' }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+      >
         <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
           <Image source={logoMark} style={styles.mark} contentFit="contain" accessibilityLabel="CookCan" />
           <BouncePressable onPress={() => rootNav.navigate('Profile')} style={styles.avatarRing}>
@@ -82,6 +87,7 @@ export default function HomeScreen() {
           </BouncePressable>
         </View>
 
+        <View style={styles.coverLift}>
         <BouncePressable onPress={featured ? () => rootNav.navigate('RecipeDetail', { recipeId: featured.id }) : curate} style={styles.cover}>
           <Image source={featuredPhoto} style={StyleSheet.absoluteFill} contentFit="cover" />
           <LinearGradient
@@ -100,6 +106,7 @@ export default function HomeScreen() {
               : 'Scan, select a cuisine, savor'}
           </Text>
         </BouncePressable>
+        </View>
 
         <View style={styles.body}>
           <Text style={styles.hello}>Scan. Select. Savor.</Text>
@@ -214,8 +221,8 @@ export default function HomeScreen() {
             <Text style={styles.empty}>Scan or type what you have. Recipes stay tied to that list.</Text>
           ) : (
             recipes.slice(0, 6).map((recipe, index) => (
+              <View key={recipe.id} style={styles.magazineLift}>
               <BouncePressable
-                key={recipe.id}
                 onPress={() => rootNav.navigate('RecipeDetail', { recipeId: recipe.id })}
                 style={styles.magazine}
               >
@@ -232,6 +239,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </BouncePressable>
+              </View>
             ))
           )}
 
@@ -259,7 +267,7 @@ function CaptureTile({
   onPress: () => void;
 }) {
   return (
-    <View style={styles.tileWrap}>
+    <View style={styles.tileLift}>
       <BouncePressable onPress={onPress} style={styles.tile}>
         <Image source={photo} style={styles.tilePhoto} contentFit="cover" />
         <LinearGradient colors={['transparent', 'rgba(27,28,26,0.72)']} style={StyleSheet.absoluteFill} />
@@ -270,27 +278,39 @@ function CaptureTile({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: colors.washCream },
   topBar: {
-    backgroundColor: colors.rose,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mark: { width: 148, height: 56 },
+  mark: {
+    width: 132,
+    height: 52,
+    borderRadius: 14,
+    boxShadow: floatShadow,
+  },
   avatarRing: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.28)',
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: floatShadow,
   },
-  avatarText: { fontWeight: '800', color: colors.white },
+  avatarText: { fontWeight: '800', color: colors.primary },
+  coverLift: {
+    marginHorizontal: 20,
+    borderRadius: 28,
+    boxShadow: floatShadow,
+  },
   cover: {
-    height: 280,
+    height: 248,
+    borderRadius: 28,
     justifyContent: 'flex-end',
     padding: 20,
     overflow: 'hidden',
@@ -319,10 +339,10 @@ const styles = StyleSheet.create({
   },
   helloSub: { color: colors.muted, marginTop: 8, fontSize: 15, lineHeight: 22 },
   captureRow: { flexDirection: 'row', gap: 10, marginTop: 18 },
-  tileWrap: { flex: 1 },
+  tileLift: { flex: 1, borderRadius: 22, boxShadow: floatShadow },
   tile: {
-    height: 116,
-    borderRadius: 18,
+    height: 124,
+    borderRadius: 22,
     overflow: 'hidden',
     justifyContent: 'flex-end',
     padding: 10,
@@ -406,11 +426,16 @@ const styles = StyleSheet.create({
   },
   miniChipText: { fontSize: 12, fontWeight: '600', color: colors.charcoal },
   empty: { color: colors.muted, lineHeight: 20 },
+  magazineLift: {
+    marginBottom: 14,
+    borderRadius: 24,
+    backgroundColor: colors.white,
+    boxShadow: floatShadow,
+  },
   magazine: {
     backgroundColor: colors.white,
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    marginBottom: 14,
   },
   magazinePhoto: { width: '100%', height: 168 },
   magazineBody: { padding: 14 },

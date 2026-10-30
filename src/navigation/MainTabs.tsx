@@ -21,7 +21,7 @@ export function MainTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.tabInactive,
         tabBarStyle: {
-          backgroundColor: colors.cream,
+          backgroundColor: 'rgba(251,246,241,0.94)',
           borderTopColor: 'rgba(137,113,117,0.18)',
           height: 68,
           paddingBottom: 10,

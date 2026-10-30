@@ -11,6 +11,7 @@ import { CUISINES, DIETARY_PREFS } from '../constants/preferences';
 import { storage } from '../lib/storage';
 import { COUNTRY_LABELS, type CountryCode } from '../lib/locale';
 import { colors } from '../theme/colors';
+import { floatShadow, SoftWash } from '../theme/wash';
 import { photoForCuisine, photos } from '../theme/photos';
 
 const COUNTRIES: CountryCode[] = ['US', 'CA', 'BR', 'MX', 'IN', 'DE', 'FR', 'AR', 'CO', 'CL', 'PE'];
@@ -39,6 +40,7 @@ export default function OnboardingScreen() {
   }
 
   return (
+    <SoftWash>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={{
@@ -49,7 +51,9 @@ export default function OnboardingScreen() {
     >
       {step === 0 && (
         <>
-          <Image source={photos.salmon} style={styles.welcomePhoto} contentFit="cover" />
+          <View style={styles.welcomeLift}>
+            <Image source={photos.salmon} style={styles.welcomePhoto} contentFit="cover" />
+          </View>
           <Text style={styles.kicker}>CookCan</Text>
           <Text style={styles.title}>Welcome to your{'\n'}chef&apos;s atelier.</Text>
           <Text style={styles.sub}>
@@ -138,11 +142,12 @@ export default function OnboardingScreen() {
         </>
       )}
     </ScrollView>
+    </SoftWash>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.cream },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   kicker: {
     color: colors.primary,
     fontStyle: 'italic',
@@ -160,11 +165,15 @@ const styles = StyleSheet.create({
   sub: { marginTop: 12, fontSize: 16, lineHeight: 24, color: colors.muted },
   hint: { marginTop: 16, color: colors.primaryDark, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 28 },
+  welcomeLift: {
+    borderRadius: 28,
+    marginBottom: 22,
+    boxShadow: floatShadow,
+  },
   welcomePhoto: {
     width: '100%',
-    height: 180,
-    borderRadius: 20,
-    marginBottom: 20,
+    height: 188,
+    borderRadius: 28,
   },
   cuisineGrid: {
     flexDirection: 'row',

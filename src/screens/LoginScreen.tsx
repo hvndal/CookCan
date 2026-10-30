@@ -10,7 +10,6 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import Animated, {
   Easing,
@@ -27,6 +26,7 @@ import { logoMark } from '../theme/assets';
 import { photos } from '../theme/photos';
 import { BouncePressable } from '../theme/motion';
 import { colors } from '../theme/colors';
+import { floatShadow, SoftWash } from '../theme/wash';
 
 const serif = Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' });
 
@@ -108,14 +108,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <View style={styles.root}>
-      <Image source={photos.salmon} style={StyleSheet.absoluteFill} contentFit="cover" />
-      <LinearGradient
-        colors={['rgba(225,129,148,0.22)', 'rgba(27,28,26,0.42)', colors.rose]}
-        locations={[0, 0.48, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-
+    <SoftWash>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={[
@@ -127,6 +120,12 @@ export default function LoginScreen() {
           <Image source={logoMark} style={styles.heroLogo} contentFit="contain" accessibilityLabel="CookCan" />
           <Text style={styles.kicker}>Scan. Select. Savor.</Text>
           <Text style={styles.sub}>Gemini curates from what you already have.</Text>
+        </View>
+
+        <View style={styles.plateLift}>
+          <View style={styles.plate}>
+            <Image source={photos.salmon} style={styles.platePhoto} contentFit="cover" />
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -212,12 +211,11 @@ export default function LoginScreen() {
           </Animated.View>
         </Animated.View>
       )}
-    </View>
+    </SoftWash>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.rose },
   wrap: {
     flex: 1,
     width: '100%',
@@ -226,32 +224,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     justifyContent: 'space-between',
   },
-  header: { alignItems: 'center', marginTop: 8 },
-  heroLogo: { width: '88%', height: 128 },
+  header: { alignItems: 'center', marginTop: 4 },
+  heroLogo: {
+    width: 168,
+    height: 96,
+    borderRadius: 18,
+    boxShadow: floatShadow,
+  },
   kicker: {
-    marginTop: 2,
+    marginTop: 14,
     fontFamily: serif,
-    fontSize: 22,
-    color: colors.white,
+    fontSize: 26,
+    color: colors.charcoal,
     textAlign: 'center',
   },
   sub: {
     marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
-    color: colors.white,
+    color: colors.muted,
     textAlign: 'center',
-    paddingHorizontal: 12,
-    opacity: 0.92,
+    paddingHorizontal: 8,
   },
+  plateLift: {
+    borderRadius: 28,
+    marginVertical: 8,
+    boxShadow: floatShadow,
+  },
+  plate: {
+    height: 148,
+    borderRadius: 28,
+    overflow: 'hidden',
+    backgroundColor: colors.washRose,
+  },
+  platePhoto: { width: '100%', height: '100%' },
   card: {
-    backgroundColor: 'rgba(251,249,245,0.94)',
-    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderRadius: 28,
     paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.7)',
+    paddingTop: 16,
+    paddingBottom: 8,
+    boxShadow: floatShadow,
   },
   cardTitle: {
     fontSize: 22,

@@ -14,6 +14,11 @@ export const colors = {
   background: '#FBF9F5',
   cream: '#FBF9F5',
   creamDark: '#F5F3EF',
+  // Soft wash, sampled from the blush / sage / lilac fields in the reference stories.
+  washRose: '#F6C6D2',
+  washCream: '#FBF6F1',
+  washSage: '#E4F0E2',
+  washLilac: '#E6E1F4',
   surface: '#FFFFFF',
   surfaceLow: '#F5F3EF',
   surfaceContainer: '#EFEEEA',

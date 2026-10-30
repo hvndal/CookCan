@@ -39,8 +39,12 @@ Photography is generated to match the rose linen of the mark (`assets/food/`). I
 - Sage `#53634D`
 - Cream `#FBF9F5`
 - Ink `#1B1C1A`
+- Wash: blush `#F6C6D2` → cream `#FBF6F1` → sage `#E4F0E2` → lilac `#E6E1F4`
 
-Rose is 10% of the screen (header, chips on, curate). Cream is 60%. Charcoal type is 30%.
+Rose is the mark and the one filled action. The page is a soft wash, the way Pagebound and Widgy sit type on a blush field. Photos float as rounded cards (tweek), they do not paint the whole phone.
+
+## Atmosphere
+`SoftWash` is the kitchen paper. Cards lift with a rose-tinted shadow. One script line, then a short sentence. Stickers stay rare: the logo, the avatar, the cuisine rings.
 
 ## Type
 Serif for dish names and the cover title. Sans for chips, tabs, and SCAN · SELECT · SAVOR. Four sizes: 11, 13, 16, 28.
@@ -49,7 +53,7 @@ Serif for dish names and the cover title. Sans for chips, tabs, and SCAN · SELE
 The kitchen door is a phone, not a form. Google is the one-tap path. A magic link is the email path. There is no password and no phone OTP — those belong on a laptop, not a fridge-width screen. Guest stays a quiet text link for a local cook.
 
 ## Layout
-8-point grid. Cards 16–20 radius. Capture tiles sit in the thumb zone. Content bleeds (photos); controls stay inset 20.
+8-point grid. Floating cards use a 28 radius. Capture tiles sit in the thumb zone. The wash bleeds; photos and controls float inside 20.
 
 ## Motion
 Press scale `0.96`. Existing springs. Confetti on a finished scan. No second animation library.
